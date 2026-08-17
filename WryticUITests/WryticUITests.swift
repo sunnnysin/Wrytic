@@ -16,7 +16,7 @@ final class WryticUITests: XCTestCase {
         let app = XCUIApplication()
         app.launch()
 
-        app.descendants(matching: .any)["sidebar.Settings"].tap()
+        app.descendants(matching: .any)["sidebar.Settings"].firstMatch.tap()
 
         XCTAssertTrue(app.navigationBars["Settings"].waitForExistence(timeout: 5))
     }
@@ -28,5 +28,15 @@ final class WryticUITests: XCTestCase {
         app.buttons["newNotebookButton"].tap()
 
         XCTAssertTrue(app.staticTexts["Untitled Notebook 1"].waitForExistence(timeout: 5))
+    }
+
+    func testTappingNotebookOpensCanvas() throws {
+        let app = XCUIApplication()
+        app.launch()
+
+        app.buttons["newNotebookButton"].tap()
+        app.staticTexts["Untitled Notebook 1"].tap()
+
+        XCTAssertTrue(app.navigationBars["Untitled Notebook 1"].waitForExistence(timeout: 5))
     }
 }
