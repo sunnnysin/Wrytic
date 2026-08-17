@@ -23,6 +23,7 @@ struct AppShellView: View {
             List(SidebarDestination.allCases, selection: $selection) { destination in
                 Label(destination.rawValue, systemImage: destination.systemImage)
                     .tag(destination)
+                    .accessibilityElement(children: .combine)
                     .accessibilityIdentifier("sidebar.\(destination.rawValue)")
             }
             .navigationTitle("Wrytic")
