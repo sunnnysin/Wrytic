@@ -36,3 +36,6 @@ GoogleService-Info.plist
 *.p12
 *.mobileprovision
 *.cer
+
+# RecognitionSpike is throwaway — keep its own Generated/ out too
+RecognitionSpike/Generated/
