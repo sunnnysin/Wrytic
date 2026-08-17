@@ -1,5 +1,7 @@
 # Wrytic
 
+[![Build and Test](https://github.com/sunnnysin/Wrytic/actions/workflows/build-and-test.yml/badge.svg)](https://github.com/sunnnysin/Wrytic/actions/workflows/build-and-test.yml)
+
 Write naturally on an iPad with Apple Pencil and have your handwriting
 automatically recognized and rendered as editable text — no text field, no
 "convert to text" button. The canvas behaves like paper; text appears on it

@@ -1,0 +1,30 @@
+included:
+  - Wrytic
+  - WryticTests
+
+excluded:
+  - RecognitionSpike
+  - Generated
+
+opt_in_rules:
+  - empty_count
+  - closure_spacing
+  - contains_over_first_not_nil
+  - fatal_error_message
+  - force_unwrapping
+  - redundant_type_annotation
+  - unneeded_parentheses_in_closure_argument
+
+disabled_rules:
+  - todo
+
+line_length:
+  warning: 120
+  error: 160
+
+identifier_name:
+  min_length: 2
+  excluded:
+    - id
+    - x
+    - y
