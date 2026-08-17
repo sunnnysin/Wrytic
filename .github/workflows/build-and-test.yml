@@ -1,0 +1,51 @@
+name: Build and Test
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  build-and-test:
+    runs-on: xcode-27
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Select Xcode 27
+        run: sudo xcode-select -s /Applications/Xcode_27.0.app
+
+      - name: Show Xcode and SDK versions
+        run: |
+          xcodebuild -version
+          xcodebuild -showsdks
+
+      - name: Install XcodeGen
+        run: brew install xcodegen
+
+      - name: Generate Xcode project
+        run: xcodegen generate
+
+      - name: Install SwiftLint
+        run: brew install swiftlint
+
+      - name: Lint
+        run: swiftlint lint --strict
+
+      - name: Build
+        run: |
+          xcodebuild \
+            -project Wrytic.xcodeproj \
+            -scheme Wrytic \
+            -destination 'platform=iOS Simulator,name=iPad Air 13-inch (M4),OS=27.0' \
+            build
+
+      - name: Test
+        run: |
+          xcodebuild \
+            -project Wrytic.xcodeproj \
+            -scheme Wrytic \
+            -destination 'platform=iOS Simulator,name=iPad Air 13-inch (M4),OS=27.0' \
+            test
