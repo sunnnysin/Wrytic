@@ -35,6 +35,20 @@
                ReferencedContainer = "container:Wrytic.xcodeproj">
             </BuildableReference>
          </BuildActionEntry>
+         <BuildActionEntry
+            buildForTesting = "YES"
+            buildForRunning = "NO"
+            buildForProfiling = "NO"
+            buildForArchiving = "NO"
+            buildForAnalyzing = "NO">
+            <BuildableReference
+               BuildableIdentifier = "primary"
+               BlueprintIdentifier = "76ACDDE46A3FEBCF89191448"
+               BuildableName = "WryticUITests.xctest"
+               BlueprintName = "WryticUITests"
+               ReferencedContainer = "container:Wrytic.xcodeproj">
+            </BuildableReference>
+         </BuildActionEntry>
       </BuildActionEntries>
    </BuildAction>
    <TestAction
@@ -61,6 +75,17 @@
                BlueprintIdentifier = "90168E9B6937CBB2BD2928CB"
                BuildableName = "WryticTests.xctest"
                BlueprintName = "WryticTests"
+               ReferencedContainer = "container:Wrytic.xcodeproj">
+            </BuildableReference>
+         </TestableReference>
+         <TestableReference
+            skipped = "NO"
+            parallelizable = "NO">
+            <BuildableReference
+               BuildableIdentifier = "primary"
+               BlueprintIdentifier = "76ACDDE46A3FEBCF89191448"
+               BuildableName = "WryticUITests.xctest"
+               BlueprintName = "WryticUITests"
                ReferencedContainer = "container:Wrytic.xcodeproj">
             </BuildableReference>
          </TestableReference>

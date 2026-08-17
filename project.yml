@@ -54,16 +54,33 @@ targets:
     dependencies:
       - target: Wrytic
 
+  WryticUITests:
+    type: bundle.ui-testing
+    platform: iOS
+    deploymentTarget: "27.0"
+    sources:
+      - path: WryticUITests
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.wrytic.app.uitests
+        SWIFT_VERSION: "6.0"
+        GENERATE_INFOPLIST_FILE: true
+        TEST_TARGET_NAME: Wrytic
+    dependencies:
+      - target: Wrytic
+
 schemes:
   Wrytic:
     build:
       targets:
         Wrytic: all
         WryticTests: [test]
+        WryticUITests: [test]
     test:
       config: Debug
       targets:
         - WryticTests
+        - WryticUITests
     run:
       config: Debug
     archive:

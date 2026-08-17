@@ -7,9 +7,16 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		0620EDCEEDB3810769718C89 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 07C4BEF3502146D6709C31C4 /* ContentView.swift */; };
+		147F2A65FF7F96A1DD59B581 /* Notebook.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4C80B3036233F46F514C3039 /* Notebook.swift */; };
+		3ABD01FB99CC2F33D3514C41 /* HomeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D998E57BE28904F90B2F48C6 /* HomeView.swift */; };
+		3DDEAB1A7CF979654F52CCB6 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0B76B9E4D894F26CF3819A02 /* SettingsView.swift */; };
+		4414379181D2292FF46A3049 /* NotebookListView.swift in Sources */ = {isa = PBXBuildFile; fileRef = BE1E45D53E9556D30B99368E /* NotebookListView.swift */; };
+		742F6C4337FBAB925B461C58 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 76226D0202A8C95FA9A4516F /* Assets.xcassets */; };
+		81BD3A1581F4B57FF82223FF /* AppShellView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 119359CB1017ACBAACA2657E /* AppShellView.swift */; };
+		862DB3A48E2703A499F738B0 /* NotebookStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5A93ACBA1E66D4C47D2730C6 /* NotebookStore.swift */; };
 		D7A63388BF5D4FF7CA866DAA /* WryticTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 724E369D2024A67BB511AB7A /* WryticTests.swift */; };
 		D7BE5A1A1F669B0CE4288D14 /* WryticApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 697698EAEF868D6D70711E76 /* WryticApp.swift */; };
+		DE6F577D279626A1CDAA415B /* WryticUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = B5FA904F30A85889FD0E51C9 /* WryticUITests.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -20,21 +27,45 @@
 			remoteGlobalIDString = D51EA5BD5DECD38FCB131250;
 			remoteInfo = Wrytic;
 		};
+		95F0D2442EBB1F72602B460F /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 6CB539AFC10770A044CFBBC1 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = D51EA5BD5DECD38FCB131250;
+			remoteInfo = Wrytic;
+		};
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
-		07C4BEF3502146D6709C31C4 /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
+		0B76B9E4D894F26CF3819A02 /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
+		119359CB1017ACBAACA2657E /* AppShellView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppShellView.swift; sourceTree = "<group>"; };
+		4C80B3036233F46F514C3039 /* Notebook.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Notebook.swift; sourceTree = "<group>"; };
+		5A93ACBA1E66D4C47D2730C6 /* NotebookStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotebookStore.swift; sourceTree = "<group>"; };
 		697698EAEF868D6D70711E76 /* WryticApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WryticApp.swift; sourceTree = "<group>"; };
 		724E369D2024A67BB511AB7A /* WryticTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WryticTests.swift; sourceTree = "<group>"; };
+		76226D0202A8C95FA9A4516F /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		7745C042BED4A0297391E5C1 /* Wrytic.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Wrytic.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		B5FA904F30A85889FD0E51C9 /* WryticUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WryticUITests.swift; sourceTree = "<group>"; };
+		BE1E45D53E9556D30B99368E /* NotebookListView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotebookListView.swift; sourceTree = "<group>"; };
 		C780C7D0E2D02C39CCC53099 /* WryticTests.xctest */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.cfbundle; path = WryticTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		D998E57BE28904F90B2F48C6 /* HomeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HomeView.swift; sourceTree = "<group>"; };
+		F22CC092DD36EB8A0E3BF5A4 /* WryticUITests.xctest */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.cfbundle; path = WryticUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
 /* Begin PBXGroup section */
+		160941595BF6272F9C171524 /* Home */ = {
+			isa = PBXGroup;
+			children = (
+				D998E57BE28904F90B2F48C6 /* HomeView.swift */,
+			);
+			path = Home;
+			sourceTree = "<group>";
+		};
 		1B839E45439318CE8439EE95 /* App */ = {
 			isa = PBXGroup;
 			children = (
-				07C4BEF3502146D6709C31C4 /* ContentView.swift */,
+				119359CB1017ACBAACA2657E /* AppShellView.swift */,
+				76226D0202A8C95FA9A4516F /* Assets.xcassets */,
 				697698EAEF868D6D70711E76 /* WryticApp.swift */,
 			);
 			path = App;
@@ -43,6 +74,8 @@
 		463CDA84CC0E73C34B2757DB /* Core */ = {
 			isa = PBXGroup;
 			children = (
+				DF1BB232EBBB93FDAAC8EB01 /* Models */,
+				75A5834F7AAE6FF85F1AF27C /* Services */,
 			);
 			path = Core;
 			sourceTree = "<group>";
@@ -73,18 +106,54 @@
 			path = Wrytic;
 			sourceTree = "<group>";
 		};
+		6DE3675ADEE69EFEFB2C4F65 /* WryticUITests */ = {
+			isa = PBXGroup;
+			children = (
+				B5FA904F30A85889FD0E51C9 /* WryticUITests.swift */,
+			);
+			path = WryticUITests;
+			sourceTree = "<group>";
+		};
+		75A5834F7AAE6FF85F1AF27C /* Services */ = {
+			isa = PBXGroup;
+			children = (
+				5A93ACBA1E66D4C47D2730C6 /* NotebookStore.swift */,
+			);
+			path = Services;
+			sourceTree = "<group>";
+		};
 		952496056B311A0452A35C84 /* Products */ = {
 			isa = PBXGroup;
 			children = (
 				7745C042BED4A0297391E5C1 /* Wrytic.app */,
 				C780C7D0E2D02C39CCC53099 /* WryticTests.xctest */,
+				F22CC092DD36EB8A0E3BF5A4 /* WryticUITests.xctest */,
 			);
 			name = Products;
+			sourceTree = "<group>";
+		};
+		B653A93C68024D3DB973EE98 /* Settings */ = {
+			isa = PBXGroup;
+			children = (
+				0B76B9E4D894F26CF3819A02 /* SettingsView.swift */,
+			);
+			path = Settings;
+			sourceTree = "<group>";
+		};
+		DF1BB232EBBB93FDAAC8EB01 /* Models */ = {
+			isa = PBXGroup;
+			children = (
+				4C80B3036233F46F514C3039 /* Notebook.swift */,
+			);
+			path = Models;
 			sourceTree = "<group>";
 		};
 		E4C97D55E515D09CC9AE7D05 /* Features */ = {
 			isa = PBXGroup;
 			children = (
+				160941595BF6272F9C171524 /* Home */,
+				EC1166B89739091888035DE9 /* Notebook */,
+				B653A93C68024D3DB973EE98 /* Settings */,
 			);
 			path = Features;
 			sourceTree = "<group>";
@@ -94,13 +163,40 @@
 			children = (
 				648878F5D0D0899609A7CAE9 /* Wrytic */,
 				4941B4ACAF986FED0B9A122F /* WryticTests */,
+				6DE3675ADEE69EFEFB2C4F65 /* WryticUITests */,
 				952496056B311A0452A35C84 /* Products */,
 			);
+			sourceTree = "<group>";
+		};
+		EC1166B89739091888035DE9 /* Notebook */ = {
+			isa = PBXGroup;
+			children = (
+				BE1E45D53E9556D30B99368E /* NotebookListView.swift */,
+			);
+			path = Notebook;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
+		76ACDDE46A3FEBCF89191448 /* WryticUITests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 9486D3F516139012754C1289 /* Build configuration list for PBXNativeTarget "WryticUITests" */;
+			buildPhases = (
+				386349D6312664982959CF29 /* Sources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				12C7B4F83765198AB6FBA919 /* PBXTargetDependency */,
+			);
+			name = WryticUITests;
+			packageProductDependencies = (
+			);
+			productName = WryticUITests;
+			productReference = F22CC092DD36EB8A0E3BF5A4 /* WryticUITests.xctest */;
+			productType = "com.apple.product-type.bundle.ui-testing";
+		};
 		90168E9B6937CBB2BD2928CB /* WryticTests */ = {
 			isa = PBXNativeTarget;
 			buildConfigurationList = DE1D3BCE839CCDA250E56D99 /* Build configuration list for PBXNativeTarget "WryticTests" */;
@@ -124,6 +220,7 @@
 			buildConfigurationList = 0BB24A8C32537D46805D2DCC /* Build configuration list for PBXNativeTarget "Wrytic" */;
 			buildPhases = (
 				D8EC761BF9280380BB956123 /* Sources */,
+				5FB7FAD14571FEC4BB13C2AC /* Resources */,
 			);
 			buildRules = (
 			);
@@ -144,6 +241,11 @@
 			attributes = {
 				BuildIndependentTargetsInParallel = YES;
 				LastUpgradeCheck = 1430;
+				TargetAttributes = {
+					76ACDDE46A3FEBCF89191448 = {
+						TestTargetID = D51EA5BD5DECD38FCB131250;
+					};
+				};
 			};
 			buildConfigurationList = 0525EF81BDA8E4D10BCFA304 /* Build configuration list for PBXProject "Wrytic" */;
 			developmentRegion = en;
@@ -161,11 +263,31 @@
 			targets = (
 				D51EA5BD5DECD38FCB131250 /* Wrytic */,
 				90168E9B6937CBB2BD2928CB /* WryticTests */,
+				76ACDDE46A3FEBCF89191448 /* WryticUITests */,
 			);
 		};
 /* End PBXProject section */
 
+/* Begin PBXResourcesBuildPhase section */
+		5FB7FAD14571FEC4BB13C2AC /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				742F6C4337FBAB925B461C58 /* Assets.xcassets in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
+
 /* Begin PBXSourcesBuildPhase section */
+		386349D6312664982959CF29 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				DE6F577D279626A1CDAA415B /* WryticUITests.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		3AAEB42D0C8D4E3200A44CDE /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
@@ -178,7 +300,12 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				0620EDCEEDB3810769718C89 /* ContentView.swift in Sources */,
+				81BD3A1581F4B57FF82223FF /* AppShellView.swift in Sources */,
+				3ABD01FB99CC2F33D3514C41 /* HomeView.swift in Sources */,
+				147F2A65FF7F96A1DD59B581 /* Notebook.swift in Sources */,
+				4414379181D2292FF46A3049 /* NotebookListView.swift in Sources */,
+				862DB3A48E2703A499F738B0 /* NotebookStore.swift in Sources */,
+				3DDEAB1A7CF979654F52CCB6 /* SettingsView.swift in Sources */,
 				D7BE5A1A1F669B0CE4288D14 /* WryticApp.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -186,6 +313,11 @@
 /* End PBXSourcesBuildPhase section */
 
 /* Begin PBXTargetDependency section */
+		12C7B4F83765198AB6FBA919 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = D51EA5BD5DECD38FCB131250 /* Wrytic */;
+			targetProxy = 95F0D2442EBB1F72602B460F /* PBXContainerItemProxy */;
+		};
 		D43109C4B1CB7FAF49579CAB /* PBXTargetDependency */ = {
 			isa = PBXTargetDependency;
 			target = D51EA5BD5DECD38FCB131250 /* Wrytic */;
@@ -212,6 +344,25 @@
 				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Wrytic.app/Wrytic";
 			};
 			name = Release;
+		};
+		0D0234EF5ABF8144B702E7E2 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 27.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@loader_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.wrytic.app.uitests;
+				SDKROOT = iphoneos;
+				SWIFT_VERSION = 6.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_TARGET_NAME = Wrytic;
+			};
+			name = Debug;
 		};
 		12CE107226A50521445A7091 /* Debug */ = {
 			isa = XCBuildConfiguration;
@@ -393,6 +544,25 @@
 			};
 			name = Debug;
 		};
+		943A05B42DBCDF36B3CBE711 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 27.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@loader_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.wrytic.app.uitests;
+				SDKROOT = iphoneos;
+				SWIFT_VERSION = 6.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_TARGET_NAME = Wrytic;
+			};
+			name = Release;
+		};
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
@@ -410,6 +580,15 @@
 			buildConfigurations = (
 				4455BABC3E515EF48358B5EA /* Debug */,
 				80D493989088D41C09CAE001 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+		9486D3F516139012754C1289 /* Build configuration list for PBXNativeTarget "WryticUITests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				0D0234EF5ABF8144B702E7E2 /* Debug */,
+				943A05B42DBCDF36B3CBE711 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Debug;

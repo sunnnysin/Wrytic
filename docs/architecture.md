@@ -25,6 +25,16 @@ no fallback needed. If this image is ever pulled or renamed, this is the
 first place to check, and the plan's documented fallback (build-only
 verification, or a self-hosted runner) still applies.
 
+## App shell navigation: NavigationSplitView
+
+The Phase 3 shell uses a two-column `NavigationSplitView` (sidebar +
+detail) rather than a three-column layout or a tab bar, matching
+standard iPad navigation patterns for this kind of app. `NotebookStore`
+is a plain `@Observable` in-memory placeholder for now — it exists only
+so the sidebar/home screen has something real to navigate and the "New
+Notebook" flow is testable; it's replaced by real persistence in Phase
+17 and isn't meant to survive app relaunch until then.
+
 ## Linting: SwiftLint
 
 SwiftLint runs in CI (`.swiftlint.yml` at the repo root) and fails the
