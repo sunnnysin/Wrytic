@@ -100,7 +100,7 @@ sync (Phase 19+):
 2. Enable **Firestore**, **Cloud Storage**, and **Authentication**
    (Email/Password provider).
 3. Add an iOS app to the Firebase project with bundle identifier
-   `com.example.Wrytic` (or your own, if you've changed it).
+   `com.wrytic.app` (or your own, if you've changed it).
 4. Download the generated `GoogleService-Info.plist` and place it at
    `Wrytic/App/GoogleService-Info.plist`. **This file is gitignored and
    must never be committed** — see `GoogleService-Info.example.plist` for
