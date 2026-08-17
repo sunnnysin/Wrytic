@@ -1,0 +1,36 @@
+name: RecognitionSpike
+options:
+  bundleIdPrefix: com.wrytic
+  deploymentTarget:
+    iOS: "27.0"
+
+configs:
+  Debug: debug
+  Release: release
+
+targets:
+  RecognitionSpike:
+    type: application
+    platform: iOS
+    deploymentTarget: "27.0"
+    sources:
+      - path: RecognitionSpike
+    info:
+      path: Generated/RecognitionSpike-Info.plist
+      properties:
+        UILaunchScreen: {}
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.wrytic.recognitionspike
+        TARGETED_DEVICE_FAMILY: "2"
+        SWIFT_VERSION: "6.0"
+        IPHONEOS_DEPLOYMENT_TARGET: "27.0"
+        GENERATE_INFOPLIST_FILE: true
+
+schemes:
+  RecognitionSpike:
+    build:
+      targets:
+        RecognitionSpike: all
+    run:
+      config: Debug
