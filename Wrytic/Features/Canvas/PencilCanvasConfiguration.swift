@@ -7,8 +7,5 @@ enum PencilCanvasConfiguration {
 
     static func configure(_ canvasView: PKCanvasView) {
         canvasView.drawingPolicy = .pencilOnly
-        canvasView.backgroundColor = .white
-        canvasView.isOpaque = true
-        canvasView.frame = CGRect(origin: .zero, size: pageSize)
     }
 }

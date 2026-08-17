@@ -7,11 +7,15 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		05F26D5C4ACC9F575E84EA7D /* PageStyle.swift in Sources */ = {isa = PBXBuildFile; fileRef = F11E10095B708A1E0D6E3DEA /* PageStyle.swift */; };
+		0F3E7DD83529A8BA5BFF6654 /* NotebookStorePageStyleTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 83994A136D8C34D93FA8A2B7 /* NotebookStorePageStyleTests.swift */; };
 		147F2A65FF7F96A1DD59B581 /* Notebook.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4C80B3036233F46F514C3039 /* Notebook.swift */; };
 		38152430A0F5313C032DD850 /* PencilCanvasScrollView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6F92FEBCDF700B1445A8050F /* PencilCanvasScrollView.swift */; };
 		3ABD01FB99CC2F33D3514C41 /* HomeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D998E57BE28904F90B2F48C6 /* HomeView.swift */; };
 		3DDEAB1A7CF979654F52CCB6 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0B76B9E4D894F26CF3819A02 /* SettingsView.swift */; };
 		4414379181D2292FF46A3049 /* NotebookListView.swift in Sources */ = {isa = PBXBuildFile; fileRef = BE1E45D53E9556D30B99368E /* NotebookListView.swift */; };
+		5F5E355FF62E782B4B1F0286 /* PageStyleBackgroundView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F433CB542816DEC73ABEE38D /* PageStyleBackgroundView.swift */; };
+		7235AE080B2B5C385A7E2B9D /* PageStylePatternGenerator.swift in Sources */ = {isa = PBXBuildFile; fileRef = 320BA8CEEA143C917BD9E925 /* PageStylePatternGenerator.swift */; };
 		742F6C4337FBAB925B461C58 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 76226D0202A8C95FA9A4516F /* Assets.xcassets */; };
 		779C4C8507F82F5AD0FB1EE8 /* DrawingToolPickerFactoryTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 44E74BE4AEE283904C24D62F /* DrawingToolPickerFactoryTests.swift */; };
 		7857F54CD82F87D8BA620E7D /* PencilCanvasConfigurationTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 32684D60EAFC20753A656B4A /* PencilCanvasConfigurationTests.swift */; };
@@ -21,6 +25,7 @@
 		97C260598B271DABFFF9002D /* StrokeTool.swift in Sources */ = {isa = PBXBuildFile; fileRef = C5DA2AC6477F5F32C138E1B1 /* StrokeTool.swift */; };
 		9A1838E659C7B4EECC582AF4 /* PencilCanvasView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D6662F683652787C9A26CB5D /* PencilCanvasView.swift */; };
 		A721816F976055460701041D /* CanvasScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1F8F1DF79ADC39C8DB7D91D2 /* CanvasScreen.swift */; };
+		AD47922235C825151AE6191C /* PageStylePatternGeneratorTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9AE990B33C609F974AA688AA /* PageStylePatternGeneratorTests.swift */; };
 		D7A63388BF5D4FF7CA866DAA /* WryticTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 724E369D2024A67BB511AB7A /* WryticTests.swift */; };
 		D7BE5A1A1F669B0CE4288D14 /* WryticApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 697698EAEF868D6D70711E76 /* WryticApp.swift */; };
 		DE6F577D279626A1CDAA415B /* WryticUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = B5FA904F30A85889FD0E51C9 /* WryticUITests.swift */; };
@@ -50,6 +55,7 @@
 		119359CB1017ACBAACA2657E /* AppShellView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppShellView.swift; sourceTree = "<group>"; };
 		1A70DF5149251E7D40DEC120 /* DrawingToolPickerFactory.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DrawingToolPickerFactory.swift; sourceTree = "<group>"; };
 		1F8F1DF79ADC39C8DB7D91D2 /* CanvasScreen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CanvasScreen.swift; sourceTree = "<group>"; };
+		320BA8CEEA143C917BD9E925 /* PageStylePatternGenerator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PageStylePatternGenerator.swift; sourceTree = "<group>"; };
 		32684D60EAFC20753A656B4A /* PencilCanvasConfigurationTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PencilCanvasConfigurationTests.swift; sourceTree = "<group>"; };
 		44E74BE4AEE283904C24D62F /* DrawingToolPickerFactoryTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DrawingToolPickerFactoryTests.swift; sourceTree = "<group>"; };
 		4C80B3036233F46F514C3039 /* Notebook.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Notebook.swift; sourceTree = "<group>"; };
@@ -59,6 +65,8 @@
 		724E369D2024A67BB511AB7A /* WryticTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WryticTests.swift; sourceTree = "<group>"; };
 		76226D0202A8C95FA9A4516F /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		7745C042BED4A0297391E5C1 /* Wrytic.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Wrytic.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		83994A136D8C34D93FA8A2B7 /* NotebookStorePageStyleTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotebookStorePageStyleTests.swift; sourceTree = "<group>"; };
+		9AE990B33C609F974AA688AA /* PageStylePatternGeneratorTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PageStylePatternGeneratorTests.swift; sourceTree = "<group>"; };
 		A334B50362AD9AC4E12FCE70 /* StrokeToolTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StrokeToolTests.swift; sourceTree = "<group>"; };
 		B5FA904F30A85889FD0E51C9 /* WryticUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WryticUITests.swift; sourceTree = "<group>"; };
 		BE1E45D53E9556D30B99368E /* NotebookListView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotebookListView.swift; sourceTree = "<group>"; };
@@ -67,7 +75,9 @@
 		D6662F683652787C9A26CB5D /* PencilCanvasView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PencilCanvasView.swift; sourceTree = "<group>"; };
 		D998E57BE28904F90B2F48C6 /* HomeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HomeView.swift; sourceTree = "<group>"; };
 		ED00C35E2BF888022281D413 /* PencilCanvasConfiguration.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PencilCanvasConfiguration.swift; sourceTree = "<group>"; };
+		F11E10095B708A1E0D6E3DEA /* PageStyle.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PageStyle.swift; sourceTree = "<group>"; };
 		F22CC092DD36EB8A0E3BF5A4 /* WryticUITests.xctest */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.cfbundle; path = WryticUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		F433CB542816DEC73ABEE38D /* PageStyleBackgroundView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PageStyleBackgroundView.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXGroup section */
@@ -113,6 +123,8 @@
 			isa = PBXGroup;
 			children = (
 				44E74BE4AEE283904C24D62F /* DrawingToolPickerFactoryTests.swift */,
+				83994A136D8C34D93FA8A2B7 /* NotebookStorePageStyleTests.swift */,
+				9AE990B33C609F974AA688AA /* PageStylePatternGeneratorTests.swift */,
 				32684D60EAFC20753A656B4A /* PencilCanvasConfigurationTests.swift */,
 				A334B50362AD9AC4E12FCE70 /* StrokeToolTests.swift */,
 				724E369D2024A67BB511AB7A /* WryticTests.swift */,
@@ -172,6 +184,16 @@
 			path = Settings;
 			sourceTree = "<group>";
 		};
+		DC644ACFFD900F13DF1EB2B6 /* PageStyles */ = {
+			isa = PBXGroup;
+			children = (
+				F11E10095B708A1E0D6E3DEA /* PageStyle.swift */,
+				F433CB542816DEC73ABEE38D /* PageStyleBackgroundView.swift */,
+				320BA8CEEA143C917BD9E925 /* PageStylePatternGenerator.swift */,
+			);
+			path = PageStyles;
+			sourceTree = "<group>";
+		};
 		DF1BB232EBBB93FDAAC8EB01 /* Models */ = {
 			isa = PBXGroup;
 			children = (
@@ -187,6 +209,7 @@
 				ED52D727C5FB6F774C7DEC30 /* DrawingTools */,
 				160941595BF6272F9C171524 /* Home */,
 				EC1166B89739091888035DE9 /* Notebook */,
+				DC644ACFFD900F13DF1EB2B6 /* PageStyles */,
 				B653A93C68024D3DB973EE98 /* Settings */,
 			);
 			path = Features;
@@ -336,6 +359,8 @@
 			buildActionMask = 2147483647;
 			files = (
 				779C4C8507F82F5AD0FB1EE8 /* DrawingToolPickerFactoryTests.swift in Sources */,
+				0F3E7DD83529A8BA5BFF6654 /* NotebookStorePageStyleTests.swift in Sources */,
+				AD47922235C825151AE6191C /* PageStylePatternGeneratorTests.swift in Sources */,
 				7857F54CD82F87D8BA620E7D /* PencilCanvasConfigurationTests.swift in Sources */,
 				EF7E470E6BB377A636C8FCFD /* StrokeToolTests.swift in Sources */,
 				D7A63388BF5D4FF7CA866DAA /* WryticTests.swift in Sources */,
@@ -353,6 +378,9 @@
 				147F2A65FF7F96A1DD59B581 /* Notebook.swift in Sources */,
 				4414379181D2292FF46A3049 /* NotebookListView.swift in Sources */,
 				862DB3A48E2703A499F738B0 /* NotebookStore.swift in Sources */,
+				05F26D5C4ACC9F575E84EA7D /* PageStyle.swift in Sources */,
+				5F5E355FF62E782B4B1F0286 /* PageStyleBackgroundView.swift in Sources */,
+				7235AE080B2B5C385A7E2B9D /* PageStylePatternGenerator.swift in Sources */,
 				7D1123EDC38F3036CCA32F1B /* PencilCanvasConfiguration.swift in Sources */,
 				38152430A0F5313C032DD850 /* PencilCanvasScrollView.swift in Sources */,
 				9A1838E659C7B4EECC582AF4 /* PencilCanvasView.swift in Sources */,
