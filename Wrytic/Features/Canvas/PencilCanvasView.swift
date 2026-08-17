@@ -32,6 +32,8 @@ struct PencilCanvasView: UIViewRepresentable {
         scrollView.pageContainer = pageContainer
         context.coordinator.backgroundView = backgroundView
 
+        canvasView.delegate = context.coordinator
+
         context.coordinator.toolPicker.setVisible(true, forFirstResponder: canvasView)
         context.coordinator.toolPicker.addObserver(canvasView)
         canvasView.becomeFirstResponder()
@@ -47,12 +49,28 @@ struct PencilCanvasView: UIViewRepresentable {
         Coordinator()
     }
 
-    final class Coordinator: NSObject, UIScrollViewDelegate {
+    final class Coordinator: NSObject, UIScrollViewDelegate, PKCanvasViewDelegate {
         let toolPicker = DrawingToolPickerFactory.makeToolPicker()
         var backgroundView: PageStyleBackgroundView?
+        private var snappedStrokeIDs: Set<UUID> = []
 
         func viewForZooming(in scrollView: UIScrollView) -> UIView? {
             (scrollView as? PencilCanvasScrollView)?.pageContainer
+        }
+
+        func canvasViewDrawingDidChange(_ canvasView: PKCanvasView) {
+            guard let lastStroke = canvasView.drawing.strokes.last,
+                  !snappedStrokeIDs.contains(lastStroke.id) else { return }
+
+            guard let snapped = ShapeSnapService.snappedStroke(for: lastStroke) else {
+                snappedStrokeIDs.insert(lastStroke.id)
+                return
+            }
+
+            snappedStrokeIDs.insert(snapped.id)
+            var strokes = canvasView.drawing.strokes
+            strokes[strokes.count - 1] = snapped
+            canvasView.drawing = PKDrawing(strokes: strokes)
         }
     }
 }
