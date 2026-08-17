@@ -1,0 +1,37 @@
+# Personal project-tracking notes — not part of the public repo
+Wrytic-Build-Plan.md
+
+# Xcode
+Generated/
+xcuserdata/
+*.xcuserstate
+DerivedData/
+.build/
+*.moved-aside
+*.pbxuser
+*.mode1v3
+*.mode2v3
+*.perspectivev3
+
+# Swift Package Manager
+.swiftpm/
+
+# CocoaPods (not used, but guard anyway)
+Pods/
+
+# Firebase — never commit real config
+GoogleService-Info.plist
+
+# macOS
+.DS_Store
+
+# Claude Code local session/config data — never part of the repo
+.claude/
+
+# Environment / secrets
+.env
+.env.*
+*.p8
+*.p12
+*.mobileprovision
+*.cer
