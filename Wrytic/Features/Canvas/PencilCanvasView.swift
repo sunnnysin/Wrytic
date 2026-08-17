@@ -18,6 +18,10 @@ struct PencilCanvasView: UIViewRepresentable {
         scrollView.canvasView = canvasView
         scrollView.delegate = context.coordinator
 
+        context.coordinator.toolPicker.setVisible(true, forFirstResponder: canvasView)
+        context.coordinator.toolPicker.addObserver(canvasView)
+        canvasView.becomeFirstResponder()
+
         return scrollView
     }
 
@@ -28,6 +32,8 @@ struct PencilCanvasView: UIViewRepresentable {
     }
 
     final class Coordinator: NSObject, UIScrollViewDelegate {
+        let toolPicker = DrawingToolPickerFactory.makeToolPicker()
+
         func viewForZooming(in scrollView: UIScrollView) -> UIView? {
             (scrollView as? PencilCanvasScrollView)?.canvasView
         }

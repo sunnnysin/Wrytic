@@ -48,7 +48,34 @@ Canvas setup lives in `PencilCanvasConfiguration`, kept separate from
 the `UIViewRepresentable` so it's unit-testable without a real UIKit
 view hierarchy.
 
-## Linting: SwiftLint
+## Drawing tools: PKToolPicker, not a custom palette
+
+Evaluated both options from the Phase 5 spec. Went with Apple's native
+`PKToolPicker` rather than a custom SwiftUI tool palette: it's
+system-provided, already gives pen/highlighter/eraser selection, a
+color picker, and a width slider for free, follows the system's
+light/dark appearance automatically, and is what most iPad users
+already know from Notes/Freeform/every other PencilKit app. A custom
+palette would mean rebuilding all of that UI (including a real color
+picker) for no functional gain at this stage — it's a better fit for
+Phase 28's visual-polish pass than for now, if ever.
+
+PencilKit has no distinct "highlighter" ink type — real PencilKit apps
+(including Apple's own) build highlighter behavior out of the `.marker`
+ink type with a translucent color and a wider default width, which is
+what `DrawingToolPickerFactory` does.
+
+Eraser modes map directly to `PKEraserTool.EraserType`: `.vector` is
+the whole-stroke eraser, `.bitmap` is the partial/pixel eraser — no
+custom eraser logic needed, both are exposed as separate tool picker
+items.
+
+Each stroke's originating tool is derived from `PKStroke.ink.inkType`
+via `StrokeTool.from(_:)` (pen ↔ `.pen`, highlighter ↔ `.marker`) rather
+than tracked in a separate side table — since Wrytic fully controls
+which ink type each of its own tools uses, this mapping is unambiguous
+and needs no extra state to stay in sync. This is what Phase 9's
+recognition filtering will call to skip highlighter strokes.
 
 SwiftLint runs in CI (`.swiftlint.yml` at the repo root) and fails the
 build on violations (`--strict`). Scoped to `Wrytic/` and `WryticTests/`
