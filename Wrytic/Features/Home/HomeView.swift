@@ -15,6 +15,9 @@ struct HomeView: View {
                         .accessibilityIdentifier("newNotebookButton")
                     }
                 }
+                .navigationDestination(for: Notebook.self) { notebook in
+                    CanvasScreen(notebook: notebook)
+                }
         }
     }
 }

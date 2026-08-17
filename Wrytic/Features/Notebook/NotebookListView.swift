@@ -12,7 +12,7 @@ struct NotebookListView: View {
             )
         } else {
             List(store.notebooks) { notebook in
-                Text(notebook.name)
+                NavigationLink(notebook.name, value: notebook)
             }
         }
     }
