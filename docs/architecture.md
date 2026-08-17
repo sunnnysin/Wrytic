@@ -35,6 +35,19 @@ so the sidebar/home screen has something real to navigate and the "New
 Notebook" flow is testable; it's replaced by real persistence in Phase
 17 and isn't meant to survive app relaunch until then.
 
+## PencilKit canvas: UIScrollView + PKCanvasView, not PKCanvasView alone
+
+`PKCanvasView` doesn't provide zoom on its own, so the Phase 4 canvas
+wraps it in a plain `UIScrollView` (`PencilCanvasScrollView`) that owns
+zooming/panning, with the canvas view as the scroll view's single
+zoomable subview. `drawingPolicy = .pencilOnly` on the canvas means
+finger touches never draw — the scroll view's own pan/pinch gestures
+handle finger input instead, and a resting palm is just another
+non-Pencil touch, giving palm rejection for free with no extra logic.
+Canvas setup lives in `PencilCanvasConfiguration`, kept separate from
+the `UIViewRepresentable` so it's unit-testable without a real UIKit
+view hierarchy.
+
 ## Linting: SwiftLint
 
 SwiftLint runs in CI (`.swiftlint.yml` at the repo root) and fails the

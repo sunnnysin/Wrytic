@@ -29,4 +29,14 @@ final class WryticUITests: XCTestCase {
 
         XCTAssertTrue(app.staticTexts["Untitled Notebook 1"].waitForExistence(timeout: 5))
     }
+
+    func testTappingNotebookOpensCanvas() throws {
+        let app = XCUIApplication()
+        app.launch()
+
+        app.buttons["newNotebookButton"].tap()
+        app.staticTexts["Untitled Notebook 1"].tap()
+
+        XCTAssertTrue(app.navigationBars["Untitled Notebook 1"].waitForExistence(timeout: 5))
+    }
 }
