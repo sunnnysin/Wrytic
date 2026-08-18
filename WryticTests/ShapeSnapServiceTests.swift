@@ -1,4 +1,5 @@
 import Testing
+import Foundation
 import PencilKit
 @testable import Wrytic
 
@@ -21,7 +22,7 @@ struct ShapeSnapServiceTests {
         return PKStroke(ink: ink, path: path)
     }
 
-    @Test func heldRectangleGetsSnapped() {
+    @Test func roughRectangleStrokeGetsSnapped() {
         let rect = CGRect(x: 0, y: 0, width: 120, height: 80)
         let corners = [
             CGPoint(x: rect.minX, y: rect.minY), CGPoint(x: rect.maxX, y: rect.minY),
@@ -43,10 +44,6 @@ struct ShapeSnapServiceTests {
                 time += 0.02
             }
         }
-        for _ in 0..<10 {
-            points.append(makePoint(x: corners[0].x, y: corners[0].y, timeOffset: time))
-            time += 0.05
-        }
 
         let stroke = makeStroke(points: points)
         let snapped = ShapeSnapService.snappedStroke(for: stroke)
@@ -55,9 +52,10 @@ struct ShapeSnapServiceTests {
         #expect(snapped?.ink.inkType == .pen)
     }
 
-    @Test func ordinaryHandwritingStrokeIsNotSnapped() {
-        let points = (0..<30).map {
-            makePoint(x: CGFloat($0) * 3, y: CGFloat.random(in: -5...5), timeOffset: TimeInterval($0) * 0.03)
+    @Test func zigzagScribbleIsNotSnapped() {
+        let offsets: [CGFloat] = [0, 20, -10, 15, -5, 20, 0, 15, -10, 20]
+        let points = offsets.enumerated().map { index, yOffset in
+            makePoint(x: CGFloat(index) * 10, y: yOffset, timeOffset: TimeInterval(index) * 0.03)
         }
         let stroke = makeStroke(points: points)
         #expect(ShapeSnapService.snappedStroke(for: stroke) == nil)

@@ -44,6 +44,26 @@ struct ShapeClassifierTests {
         #expect(ShapeClassifier.classify(points: points) == nil)
     }
 
+    @Test func perfectlyHorizontalLineIsNotRejectedForZeroHeight() {
+        let points = stride(from: 0, through: 120, by: 6).map { CGPoint(x: CGFloat($0), y: 40) }
+        #expect(ShapeClassifier.classify(points: points) == .line)
+    }
+
+    @Test func perfectlyVerticalLineIsNotRejectedForZeroWidth() {
+        let points = stride(from: 0, through: 120, by: 6).map { CGPoint(x: 40, y: CGFloat($0)) }
+        #expect(ShapeClassifier.classify(points: points) == .line)
+    }
+
+    @Test func smallHandwritingScaleLoopIsNotClassifiedAsAShape() {
+        let center = CGPoint(x: 10, y: 10)
+        let radius: CGFloat = 8
+        let points = (0..<20).map { step -> CGPoint in
+            let angle = (CGFloat(step) / 20) * 2 * .pi
+            return CGPoint(x: center.x + radius * cos(angle), y: center.y + radius * sin(angle))
+        }
+        #expect(ShapeClassifier.classify(points: points) == nil)
+    }
+
     @Test func fitProducesLineWithOriginalEndpoints() {
         let points = stride(from: 0, through: 100, by: 5).map { CGPoint(x: CGFloat($0), y: 40) }
         guard case let .line(start, end) = ShapeClassifier.fit(points: points) else {

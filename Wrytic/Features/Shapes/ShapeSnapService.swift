@@ -2,10 +2,7 @@ import PencilKit
 
 enum ShapeSnapService {
     static func snappedStroke(for stroke: PKStroke) -> PKStroke? {
-        let points = Array(stroke.path)
-        guard StrokeHoldDetector.isHeldStillAtEnd(points: points) else { return nil }
-
-        let locations = points.map(\.location)
+        let locations = Array(stroke.path).map(\.location)
         guard let fit = ShapeClassifier.fit(points: locations) else { return nil }
 
         let shapePath = ShapePathBuilder.strokePath(for: fit, creationDate: stroke.path.creationDate)

@@ -5,14 +5,20 @@ enum ShapeClassifier {
     static let lineDeviationThresholdRatio: CGFloat = 0.08
     static let rectangleAreaRatioThreshold: CGFloat = 0.7
     static let minimumPointsRequired = 4
+    /// Bounding-box diagonal below this is treated as handwriting-scale
+    /// (e.g. a lowercase "o" loop), not an intentional shape — this uses
+    /// the diagonal rather than width/height independently so a long,
+    /// naturally thin straight line isn't rejected for having near-zero
+    /// height.
+    static let minimumBoundingBoxDiagonal: CGFloat = 44
 
     static func classify(points: [CGPoint]) -> ShapeType? {
         guard points.count >= minimumPointsRequired, let first = points.first, let last = points.last else {
             return nil
         }
         let bbox = boundingBox(of: points)
-        guard bbox.width > 1, bbox.height > 1 else { return nil }
         let diagonal = (bbox.width * bbox.width + bbox.height * bbox.height).squareRoot()
+        guard diagonal >= minimumBoundingBoxDiagonal else { return nil }
 
         let closingGap = distance(first, last)
         let isClosed = closingGap <= diagonal * closureThresholdRatio
@@ -24,6 +30,7 @@ enum ShapeClassifier {
             return nil
         }
 
+        guard bbox.width > 1, bbox.height > 1 else { return nil }
         let areaRatio = enclosedArea(points: points) / (bbox.width * bbox.height)
         if areaRatio >= rectangleAreaRatioThreshold {
             return .rectangle

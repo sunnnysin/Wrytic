@@ -104,12 +104,18 @@ is `PKToolPickerRulerItem` (a straight-edge drawing aid), not shape
 recognition. So Phase 7 implements a custom heuristic, per the plan's
 fallback instructions:
 
-- **Hold detection** (`StrokeHoldDetector`): rather than a live
-  `UIPencilInteraction`/hover listener, it reads the stroke's own
-  already-recorded `PKStrokePoint.timeOffset`/`location` data and checks
-  whether the trailing ~0.35s of points stay within a small movement
-  radius of each other. This is self-contained and directly unit-testable
-  against synthetic point sets, with no live-hover plumbing needed.
+- **Hold/pause detection** (`PencilCanvasView.Coordinator`): a real
+  wall-clock debounce timer (`DispatchQueue.main.asyncAfter`, 0.4s),
+  reset on every `canvasViewDrawingDidChange`. The first implementation
+  tried inferring a "hold" purely from the stroke's own recorded
+  `PKStrokePoint.timeOffset`/`location` data (whether trailing points
+  stayed still) — on-device testing showed this was unreliable, because
+  PencilKit doesn't reliably keep generating new points while the Pencil
+  is genuinely stationary, so the data the detector needed often just
+  wasn't there. A real timer that fires only once drawing has *actually*
+  stopped changing for the debounce window is what the plan's fallback
+  wording ("a stroke-end-plus-pause gesture") describes, and it doesn't
+  depend on PencilKit's internal point-sampling behavior at all.
 - **Classification** (`ShapeClassifier`): pure geometry over `[CGPoint]`.
   Closed vs. open is decided by how close the stroke's start and end
   points are relative to its bounding-box diagonal. Open strokes with low
@@ -118,14 +124,18 @@ fallback instructions:
   comparing the polygon's enclosed area (shoelace formula) against its
   bounding-box area — a rectangle drawn roughly still fills most of its
   bounding box, while a circle/ellipse fills ~78.5% (π/4) of it, giving a
-  clean, well-separated threshold between the two.
+  clean, well-separated threshold between the two. A minimum bounding-box
+  *diagonal* (not width/height independently, since a genuine straight
+  line can be arbitrarily thin in one axis) filters out handwriting-scale
+  loops (e.g. a lowercase "o") from being misread as intentional shapes.
 - **Fitting** (`ShapePathBuilder`): converts the classified shape into a
   clean `PKStrokePath` (line: 2-point path; rectangle: the 4 bounding-box
   corners; ellipse: a sampled circle/ellipse outline in the bounding box).
 - **Replacement** (`ShapeSnapService` + `PencilCanvasView.Coordinator`):
-  on `canvasViewDrawingDidChange`, the most recent stroke is checked once
-  (tracked by `PKStroke.id` to avoid reprocessing); if it qualifies, it's
-  swapped in-place in `canvasView.drawing.strokes` for the fitted
+  once the debounce timer fires without being cancelled by further
+  drawing, the still-current last stroke is evaluated once (tracked by
+  `PKStroke.id` to avoid reprocessing); if it qualifies, it's swapped
+  in-place in `canvasView.drawing.strokes` for the fitted
   version, preserving the original ink/tool/color.
 
 Applies to any inking stroke drawn (pen or highlighter), not restricted
