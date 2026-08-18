@@ -62,14 +62,37 @@ struct PencilCanvasView: UIViewRepresentable {
         var backgroundView: PageStyleBackgroundView?
         private var snappedStrokeIDs: Set<UUID> = []
         private var pendingSnapWorkItem: DispatchWorkItem?
+        private var isToolInUse = false
 
         func viewForZooming(in scrollView: UIScrollView) -> UIView? {
             (scrollView as? PencilCanvasScrollView)?.pageContainer
         }
 
+        func canvasViewDidBeginUsingTool(_ canvasView: PKCanvasView) {
+            isToolInUse = true
+        }
+
+        func canvasViewDidEndUsingTool(_ canvasView: PKCanvasView) {
+            isToolInUse = false
+            scheduleSnapIfNeeded(in: canvasView)
+        }
+
         func canvasViewDrawingDidChange(_ canvasView: PKCanvasView) {
             pendingSnapWorkItem?.cancel()
+            // Pressure data lags touch data, so PencilKit can still deliver a
+            // final, corrected version of the stroke after the pencil lifts
+            // (canvasViewDidEndUsingTool already fired). Scheduling from
+            // changes that land while the pencil is still down snaps against
+            // not-yet-final geometry, and the later correction then arrives
+            // as an unsnapped stroke and gets reclassified from scratch —
+            // sometimes crossing the rectangle/ellipse threshold the other
+            // way. Only scheduling once the tool is no longer in use avoids
+            // classifying anything but the finished stroke.
+            guard !isToolInUse else { return }
+            scheduleSnapIfNeeded(in: canvasView)
+        }
 
+        private func scheduleSnapIfNeeded(in canvasView: PKCanvasView) {
             guard let lastStroke = canvasView.drawing.strokes.last,
                   !snappedStrokeIDs.contains(lastStroke.id) else { return }
 
