@@ -3,6 +3,7 @@ import PencilKit
 
 struct PencilCanvasView: UIViewRepresentable {
     @Binding var canvasView: PKCanvasView
+    var pageStyle: PageStyle
 
     func makeUIView(context: Context) -> PencilCanvasScrollView {
         let scrollView = PencilCanvasScrollView()
@@ -10,13 +11,26 @@ struct PencilCanvasView: UIViewRepresentable {
         scrollView.maximumZoomScale = PencilCanvasConfiguration.maximumZoomScale
         scrollView.bouncesZoom = true
         scrollView.backgroundColor = .systemGray5
+        scrollView.contentSize = PencilCanvasConfiguration.pageSize
+        scrollView.delegate = context.coordinator
+
+        let pageContainer = UIView(frame: CGRect(origin: .zero, size: PencilCanvasConfiguration.pageSize))
+        pageContainer.backgroundColor = .clear
+
+        let backgroundView = PageStyleBackgroundView(frame: pageContainer.bounds)
+        backgroundView.style = pageStyle
+        pageContainer.addSubview(backgroundView)
 
         PencilCanvasConfiguration.configure(canvasView)
+        canvasView.frame = pageContainer.bounds
+        canvasView.backgroundColor = .clear
+        canvasView.isOpaque = false
+        canvasView.isScrollEnabled = false
+        pageContainer.addSubview(canvasView)
 
-        scrollView.contentSize = canvasView.frame.size
-        scrollView.addSubview(canvasView)
-        scrollView.canvasView = canvasView
-        scrollView.delegate = context.coordinator
+        scrollView.addSubview(pageContainer)
+        scrollView.pageContainer = pageContainer
+        context.coordinator.backgroundView = backgroundView
 
         context.coordinator.toolPicker.setVisible(true, forFirstResponder: canvasView)
         context.coordinator.toolPicker.addObserver(canvasView)
@@ -25,7 +39,9 @@ struct PencilCanvasView: UIViewRepresentable {
         return scrollView
     }
 
-    func updateUIView(_ uiView: PencilCanvasScrollView, context: Context) {}
+    func updateUIView(_ uiView: PencilCanvasScrollView, context: Context) {
+        context.coordinator.backgroundView?.style = pageStyle
+    }
 
     func makeCoordinator() -> Coordinator {
         Coordinator()
@@ -33,9 +49,10 @@ struct PencilCanvasView: UIViewRepresentable {
 
     final class Coordinator: NSObject, UIScrollViewDelegate {
         let toolPicker = DrawingToolPickerFactory.makeToolPicker()
+        var backgroundView: PageStyleBackgroundView?
 
         func viewForZooming(in scrollView: UIScrollView) -> UIView? {
-            (scrollView as? PencilCanvasScrollView)?.canvasView
+            (scrollView as? PencilCanvasScrollView)?.pageContainer
         }
     }
 }

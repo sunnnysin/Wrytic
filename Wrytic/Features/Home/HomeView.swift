@@ -16,7 +16,7 @@ struct HomeView: View {
                     }
                 }
                 .navigationDestination(for: Notebook.self) { notebook in
-                    CanvasScreen(notebook: notebook)
+                    CanvasScreen(notebookID: notebook.id, store: store)
                 }
         }
     }
