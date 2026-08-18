@@ -65,10 +65,19 @@ PencilKit has no distinct "highlighter" ink type — real PencilKit apps
 ink type with a translucent color and a wider default width, which is
 what `DrawingToolPickerFactory` does.
 
-Eraser modes map directly to `PKEraserTool.EraserType`: `.vector` is
-the whole-stroke eraser, `.bitmap` is the partial/pixel eraser — no
-custom eraser logic needed, both are exposed as separate tool picker
-items.
+Eraser modes map to `PKEraserTool.EraserType`: `.vector` is the
+whole-stroke eraser, `.bitmap` is the partial/pixel eraser. Only one
+`PKToolPickerEraserItem` (`.vector`) is offered as a picker item —
+unlike `PKToolPickerInkingItem`, it has no settable `identifier`, and
+per Apple's documented dedup behavior a second instance silently
+collides with the first and gets dropped (caught by CI: `toolItems`
+came back with 3 items instead of the assumed 4, on real hardware, not
+just in unit tests against a mocked picker). Whether the single vector
+eraser item's own native flyout additionally exposes bitmap/pixel
+erasing (the same way a single `PKToolPickerInkingItem`'s color/width
+are still adjustable beyond its constructor defaults) needs on-device
+confirmation — if not, a second, explicit way to reach bitmap erasing
+is still owed against the "both eraser modes" requirement.
 
 Each stroke's originating tool is derived from `PKStroke.ink.inkType`
 via `StrokeTool.from(_:)` (pen ↔ `.pen`, highlighter ↔ `.marker`) rather

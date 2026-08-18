@@ -2,9 +2,9 @@ import Testing
 @testable import Wrytic
 
 struct DrawingToolPickerFactoryTests {
-    @Test func toolPickerContainsPenHighlighterAndBothEraserModes() {
+    @Test func toolPickerContainsPenHighlighterAndEraser() {
         let picker = DrawingToolPickerFactory.makeToolPicker()
-        #expect(picker.toolItems.count == 4)
+        #expect(picker.toolItems.count == 3)
     }
 
     @Test func highlighterIsWiderThanPen() {
