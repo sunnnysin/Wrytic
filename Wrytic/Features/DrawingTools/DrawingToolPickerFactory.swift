@@ -25,9 +25,12 @@ enum DrawingToolPickerFactory {
             width: defaultHighlighterWidth,
             identifier: highlighterIdentifier
         )
+        // PKToolPickerEraserItem has no settable identifier, so a second
+        // instance silently collides with the first and gets dropped
+        // (Apple's documented dedup behavior) — only one eraser item
+        // can actually appear in the picker.
         let vectorEraser = PKToolPickerEraserItem(type: .vector)
-        let bitmapEraser = PKToolPickerEraserItem(type: .bitmap)
 
-        return PKToolPicker(toolItems: [penItem, highlighterItem, vectorEraser, bitmapEraser])
+        return PKToolPicker(toolItems: [penItem, highlighterItem, vectorEraser])
     }
 }
