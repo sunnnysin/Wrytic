@@ -86,7 +86,61 @@ which ink type each of its own tools uses, this mapping is unambiguous
 and needs no extra state to stay in sync. This is what Phase 9's
 recognition filtering will call to skip highlighter strokes.
 
+## Linting: SwiftLint
+
 SwiftLint runs in CI (`.swiftlint.yml` at the repo root) and fails the
 build on violations (`--strict`). Scoped to `Wrytic/` and `WryticTests/`
 only — `RecognitionSpike/` is excluded since it's explicitly disposable
 (Phase 0) and not held to the same bar.
+
+## Shape recognition: custom heuristic (no public shape-fitting API exists)
+
+Checked the actual iOS 27 SDK before implementing anything — searched
+every `PencilKit.framework` header and the Swift module interface for
+any shape-recognition or geometry-fitting API (`grep -i "shape"` across
+all headers, the full `PencilKit.h` umbrella header symbol list, and the
+`.swiftinterface`). None exists. PencilKit's only geometry-adjacent tool
+is `PKToolPickerRulerItem` (a straight-edge drawing aid), not shape
+recognition. So Phase 7 implements a custom heuristic, per the plan's
+fallback instructions:
+
+- **Hold/pause detection** (`PencilCanvasView.Coordinator`): a real
+  wall-clock debounce timer (`DispatchQueue.main.asyncAfter`, 0.4s),
+  reset on every `canvasViewDrawingDidChange`. The first implementation
+  tried inferring a "hold" purely from the stroke's own recorded
+  `PKStrokePoint.timeOffset`/`location` data (whether trailing points
+  stayed still) — on-device testing showed this was unreliable, because
+  PencilKit doesn't reliably keep generating new points while the Pencil
+  is genuinely stationary, so the data the detector needed often just
+  wasn't there. A real timer that fires only once drawing has *actually*
+  stopped changing for the debounce window is what the plan's fallback
+  wording ("a stroke-end-plus-pause gesture") describes, and it doesn't
+  depend on PencilKit's internal point-sampling behavior at all.
+- **Classification** (`ShapeClassifier`): pure geometry over `[CGPoint]`.
+  Closed vs. open is decided by how close the stroke's start and end
+  points are relative to its bounding-box diagonal. Open strokes with low
+  max-deviation from the straight line between their endpoints become
+  `.line`. Closed strokes are split into `.rectangle` vs. `.ellipse` by
+  comparing the polygon's enclosed area (shoelace formula) against its
+  bounding-box area — a rectangle drawn roughly still fills most of its
+  bounding box, while a circle/ellipse fills ~78.5% (π/4) of it, giving a
+  clean, well-separated threshold between the two. A minimum bounding-box
+  *diagonal* (not width/height independently, since a genuine straight
+  line can be arbitrarily thin in one axis) filters out handwriting-scale
+  loops (e.g. a lowercase "o") from being misread as intentional shapes.
+- **Fitting** (`ShapePathBuilder`): converts the classified shape into a
+  clean `PKStrokePath` (line: 2-point path; rectangle: the 4 bounding-box
+  corners; ellipse: a sampled circle/ellipse outline in the bounding box).
+- **Replacement** (`ShapeSnapService` + `PencilCanvasView.Coordinator`):
+  once the debounce timer fires without being cancelled by further
+  drawing, the still-current last stroke is evaluated once (tracked by
+  `PKStroke.id` to avoid reprocessing); if it qualifies, it's swapped
+  in-place in `canvasView.drawing.strokes` for the fitted
+  version, preserving the original ink/tool/color.
+
+Applies to any inking stroke drawn (pen or highlighter), not restricted
+by tool — Phase 8/9's stroke-model/tagging work will need to decide
+separately how shape-snapped strokes are tagged for handwriting
+recognition exclusion (per the build plan, shape-snapped strokes must
+never reach the recognizer), since that persisted tagging model doesn't
+exist yet at this phase.
