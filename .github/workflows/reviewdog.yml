@@ -7,6 +7,7 @@ on:
 permissions:
   contents: read
   pull-requests: write
+  checks: write
 
 jobs:
   swiftlint:
@@ -28,9 +29,14 @@ jobs:
       - name: Install SwiftLint
         run: brew install swiftlint
 
-      - name: reviewdog-swiftlint
-        uses: reviewdog/action-swiftlint@v1
+      - name: Setup reviewdog
+        uses: reviewdog/action-setup@v1
         with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-          reporter: github-pr-review
-          fail_level: none
+          reviewdog_version: latest
+
+      - name: SwiftLint -> reviewdog
+        env:
+          REVIEWDOG_GITHUB_API_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          swiftlint lint --reporter checkstyle > swiftlint.xml || true
+          reviewdog -f=checkstyle -name="swiftlint" -reporter=github-pr-review < swiftlint.xml
