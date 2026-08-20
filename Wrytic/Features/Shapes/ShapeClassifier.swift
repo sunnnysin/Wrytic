@@ -78,13 +78,43 @@ enum ShapeClassifier {
         case .line:
             return .line(start: first, end: last)
         case .rectangle:
-            return .rectangle(boundingBox(of: points))
+            return .rectangle(rectangleBoundingBox(points: points))
         case .ellipse:
             return .ellipse(boundingBox(of: points))
         case .arrow:
             guard let (tail, head) = detectArrow(points: points) else { return nil }
             return .arrow(tail: tail, head: head)
         }
+    }
+
+    /// A hand-drawn rectangle's corners are where the pencil sharply
+    /// changes direction, and that's exactly where people tend to
+    /// overshoot slightly before correcting — a small spike past the true
+    /// corner that a plain min/max bounding box takes at face value,
+    /// inflating the fitted rectangle. When the corner-detection pass
+    /// found a 5th vertex (the tolerance for a rectangle at all), it's
+    /// almost always that overshoot, not a genuine 5th corner, so the
+    /// bounding box is built from whichever 4 of those 5 vertices are
+    /// smallest — dropping the outlier shrinks the box the most.
+    private static func rectangleBoundingBox(points: [CGPoint]) -> CGRect {
+        let bbox = boundingBox(of: points)
+        guard let first = points.first else { return bbox }
+        var closedLoop = points
+        if let last = points.last, last != first { closedLoop.append(first) }
+        let diagonal = (bbox.width * bbox.width + bbox.height * bbox.height).squareRoot()
+        let simplified = douglasPeucker(points: closedLoop, epsilon: diagonal * cornerSimplificationRatio)
+        let corners = Array(simplified.dropLast())
+        guard corners.count == 5 else { return bbox }
+
+        var bestBox = bbox
+        for skipIndex in corners.indices {
+            let subset = corners.enumerated().filter { $0.offset != skipIndex }.map(\.element)
+            let candidateBox = boundingBox(of: subset)
+            if candidateBox.width * candidateBox.height < bestBox.width * bestBox.height {
+                bestBox = candidateBox
+            }
+        }
+        return bestBox
     }
 
     /// Finds an arrow shaft + arrowhead in an open stroke: the two
