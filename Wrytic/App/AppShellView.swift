@@ -21,8 +21,14 @@ struct AppShellView: View {
     var body: some View {
         NavigationSplitView {
             List(SidebarDestination.allCases, selection: $selection) { destination in
+                let isSelected = selection == destination
                 Label(destination.rawValue, systemImage: destination.systemImage)
+                    .foregroundStyle(isSelected ? .white : .primary)
                     .tag(destination)
+                    .listRowBackground(
+                        Capsule()
+                            .fill(isSelected ? Color.accentColor : Color.clear)
+                    )
                     .accessibilityElement(children: .combine)
                     .accessibilityIdentifier("sidebar.\(destination.rawValue)")
             }
