@@ -54,6 +54,22 @@ struct ShapeClassifierTests {
         #expect(ShapeClassifier.classify(points: points) == .line)
     }
 
+    @Test func flattenedHandDrawnEllipseWithHighFillRatioStillClassifiesAsEllipse() {
+        let center = CGPoint(x: 50, y: 30)
+        let radiusX: CGFloat = 60
+        let radiusY: CGFloat = 25
+        let points = (0..<80).map { step -> CGPoint in
+            let angle = (CGFloat(step) / 80) * 2 * .pi
+            return CGPoint(x: center.x + radiusX * cos(angle), y: center.y + radiusY * sin(angle))
+        }
+        #expect(ShapeClassifier.classify(points: points) == .ellipse)
+    }
+
+    @Test func roundedCornerRectangleWithLowFillRatioStillClassifiesAsRectangle() {
+        let points = roundedRectanglePoints(rect: CGRect(x: 0, y: 0, width: 140, height: 90), cornerRadius: 20)
+        #expect(ShapeClassifier.classify(points: points) == .rectangle)
+    }
+
     @Test func smallHandwritingScaleLoopIsNotClassifiedAsAShape() {
         let center = CGPoint(x: 10, y: 10)
         let radius: CGFloat = 8
@@ -72,6 +88,38 @@ struct ShapeClassifierTests {
         }
         #expect(start == points.first)
         #expect(end == points.last)
+    }
+
+    private func roundedRectanglePoints(rect: CGRect, cornerRadius: CGFloat) -> [CGPoint] {
+        let arcs: [(center: CGPoint, startAngle: CGFloat)] = [
+            (CGPoint(x: rect.maxX - cornerRadius, y: rect.minY + cornerRadius), -.pi / 2),
+            (CGPoint(x: rect.maxX - cornerRadius, y: rect.maxY - cornerRadius), 0),
+            (CGPoint(x: rect.minX + cornerRadius, y: rect.maxY - cornerRadius), .pi / 2),
+            (CGPoint(x: rect.minX + cornerRadius, y: rect.minY + cornerRadius), .pi)
+        ]
+        var points: [CGPoint] = []
+        for (index, arc) in arcs.enumerated() {
+            for step in 0...8 {
+                let angle = arc.startAngle + (CGFloat(step) / 8) * (.pi / 2)
+                let x = arc.center.x + cornerRadius * cos(angle)
+                let y = arc.center.y + cornerRadius * sin(angle)
+                points.append(CGPoint(x: x, y: y))
+            }
+            let next = arcs[(index + 1) % arcs.count]
+            let nextStart = CGPoint(
+                x: next.center.x + cornerRadius * cos(next.startAngle),
+                y: next.center.y + cornerRadius * sin(next.startAngle)
+            )
+            guard let last = points.last else { continue }
+            for step in 1..<6 {
+                let fraction = CGFloat(step) / 6
+                points.append(CGPoint(
+                    x: last.x + (nextStart.x - last.x) * fraction,
+                    y: last.y + (nextStart.y - last.y) * fraction
+                ))
+            }
+        }
+        return points
     }
 
     private func samplePerimeter(corners: [CGPoint], samplesPerSegment: Int = 15) -> [CGPoint] {
