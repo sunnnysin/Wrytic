@@ -202,3 +202,50 @@ long as the caller (Phase 11's wiring) doesn't delete the source
 strokes until it has actual replacement text in hand, nothing is ever
 lost to a failed recognition. Retrying is just calling
 `recognizedText(strokeIDs:)` again; there's no failure state to reset.
+
+## Font rendering: named fonts + an injectable availability seam
+
+Phase 10 adds **Noteworthy** to the plan's original font list (Chalkboard
+SE, Helvetica, Avenir, Georgia, Times New Roman, Courier, System, System
+Rounded) — a real system font, well-suited to a handwriting app, added on
+request the same way Phase 7 added arrow shapes beyond its original scope.
+
+`AppFont` (`Features/Fonts/AppFont.swift`) maps each case to the exact
+PostScript name iOS registers it under — verified against the real SDK at
+runtime (`UIFont.fontNames(forFamilyName:)`) rather than assumed, since
+guessing PostScript names wrong (e.g. `Avenir-Regular` instead of the
+real `Avenir-Book`) fails silently by falling back to the system font
+with no error.
+
+`SystemFontAvailabilityService` (`Features/Fonts/FontAvailabilityService.swift`)
+checks a font's real availability via `UIFont(name:size:)` before
+resolving it to a SwiftUI `Font`, falling back to `.system` when a named
+font isn't present. Every font this ships with is a stock iOS font that's
+always available on-device, so the fallback path can't be exercised
+against real data — the existence check is exposed as an injectable
+`fontExists` closure (defaulting to the real `UIFont` lookup) purely so
+the fallback logic itself has a deterministic test, per the phase's
+"unit tests for the availability/fallback logic" requirement.
+
+Weight (Light/Regular/Bold) is a second axis on top of family, and not
+every family ships every weight — Noteworthy has no Regular, Georgia/
+Times New Roman/Courier have no Light (confirmed against the SDK the
+same way, not assumed). `AppFont.postscriptName(for:)` looks weight up
+from a per-family dictionary rather than a nested switch, since the
+nested-switch version tripped SwiftLint's cyclomatic complexity limit.
+`FontPickerView`'s weight picker disables options the selected font
+doesn't support and re-picks a valid weight on font change, rather than
+silently falling back — `resolvedFont` still falls back to the family's
+Regular weight (then to `.system` if the whole family is unavailable)
+as a safety net, but the UI shouldn't offer a choice that visibly does
+nothing.
+
+`TextStyle` (`Core/Models/TextStyle.swift`, font + weight + size) and
+`FontSettingsStore` (`Core/Services/FontSettingsStore.swift`) follow the
+same placeholder pattern `NotebookStore` set in Phase 3: an in-memory
+`@Observable` store wired into `AppShellView`, not persisted — Phase 17
+is what makes settings survive a relaunch. The picker itself
+(`FontPickerView`) is reachable now from `SettingsView` as "Default
+Font," since that's the only place in the app a font+size selection
+makes sense today; Phase 25 is what builds Settings out further, not
+what introduces font selection into it.
