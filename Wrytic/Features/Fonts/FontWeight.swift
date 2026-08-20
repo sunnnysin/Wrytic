@@ -1,4 +1,5 @@
 import SwiftUI
+import UIKit
 
 enum FontWeight: String, CaseIterable, Codable, Identifiable, Hashable {
     case light
@@ -10,6 +11,14 @@ enum FontWeight: String, CaseIterable, Codable, Identifiable, Hashable {
     var displayName: String { rawValue.capitalized }
 
     var swiftUIWeight: Font.Weight {
+        switch self {
+        case .light: .light
+        case .regular: .regular
+        case .bold: .bold
+        }
+    }
+
+    var uiFontWeight: UIFont.Weight {
         switch self {
         case .light: .light
         case .regular: .regular

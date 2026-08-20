@@ -4,6 +4,8 @@ import PencilKit
 struct PencilCanvasView: UIViewRepresentable {
     @Binding var canvasView: PKCanvasView
     var pageStyle: PageStyle
+    var fontSettings: FontSettingsStore
+    var textStore: RecognizedTextStore
 
     func makeUIView(context: Context) -> PencilCanvasScrollView {
         let scrollView = PencilCanvasScrollView()
@@ -54,7 +56,7 @@ struct PencilCanvasView: UIViewRepresentable {
     }
 
     func makeCoordinator() -> Coordinator {
-        Coordinator()
+        Coordinator(fontSettings: fontSettings, textStore: textStore)
     }
 
     final class Coordinator: NSObject, UIScrollViewDelegate, PKCanvasViewDelegate {
@@ -71,6 +73,10 @@ struct PencilCanvasView: UIViewRepresentable {
         /// line gets snapped shortly after every lift, even a quick doodle
         /// drawn with no pause — the gesture is draw-AND-hold, not just draw.
         static let holdDetectionDelay: TimeInterval = 0.35
+        /// Longer than the shape-snap debounce so a stroke that's about to
+        /// be replaced by a snapped shape is never sent to recognition in
+        /// its rough, pre-snap form.
+        static let recognitionDebounceDelay: TimeInterval = 0.8
 
         let toolPicker = DrawingToolPickerFactory.makeToolPicker()
         var backgroundView: PageStyleBackgroundView?
@@ -94,6 +100,21 @@ struct PencilCanvasView: UIViewRepresentable {
         /// a shape that's already been fitted.
         private var isApplyingSelectionUpdate = false
 
+        private let fontSettings: FontSettingsStore
+        private let textStore: RecognizedTextStore
+        private let recognitionWorkflow: HandwritingWorkflowService = AutoRecognitionWorkflow()
+        private let availabilityService: FontAvailabilityService = SystemFontAvailabilityService()
+        private var pendingRecognitionWorkItem: DispatchWorkItem?
+        /// Set while a successful recognition removes source strokes from
+        /// canvasView.drawing, for the same re-entrancy reason as
+        /// isApplyingSelectionUpdate above.
+        private var isApplyingRecognitionUpdate = false
+
+        init(fontSettings: FontSettingsStore, textStore: RecognizedTextStore) {
+            self.fontSettings = fontSettings
+            self.textStore = textStore
+        }
+
         func viewForZooming(in scrollView: UIScrollView) -> UIView? {
             (scrollView as? PencilCanvasScrollView)?.pageContainer
         }
@@ -108,11 +129,13 @@ struct PencilCanvasView: UIViewRepresentable {
             isToolInUse = false
             holdDetectionWorkItem?.cancel()
             scheduleSnapIfNeeded(in: canvasView)
+            scheduleRecognition(in: canvasView)
         }
 
         func canvasViewDrawingDidChange(_ canvasView: PKCanvasView) {
-            guard !isApplyingSelectionUpdate else { return }
+            guard !isApplyingSelectionUpdate, !isApplyingRecognitionUpdate else { return }
             pendingSnapWorkItem?.cancel()
+            pendingRecognitionWorkItem?.cancel()
             if isToolInUse {
                 // Still moving — a genuine hold requires no new points for
                 // holdDetectionDelay while the pencil stays down, so any
@@ -130,6 +153,7 @@ struct PencilCanvasView: UIViewRepresentable {
             // way. Only scheduling once the tool is no longer in use avoids
             // classifying anything but the finished stroke.
             scheduleSnapIfNeeded(in: canvasView)
+            scheduleRecognition(in: canvasView)
         }
 
         private func scheduleHoldDetection() {
@@ -241,6 +265,58 @@ struct PencilCanvasView: UIViewRepresentable {
             selectedOriginalStroke = nil
             selectedOriginalPoints = []
             dragStartFit = nil
+        }
+
+        private func scheduleRecognition(in canvasView: PKCanvasView) {
+            let drawing = canvasView.drawing
+            let shapeSnappedIDs = snappedStrokeIDs
+            let style = fontSettings.defaultStyle
+
+            let workItem = DispatchWorkItem { [weak self, weak canvasView] in
+                guard let self, let canvasView else { return }
+                Task { @MainActor in
+                    guard let textObject = await self.recognitionWorkflow.process(
+                        drawing: drawing,
+                        shapeSnappedStrokeIDs: shapeSnappedIDs,
+                        style: style
+                    ) else { return }
+                    self.applyRecognizedText(textObject, in: canvasView)
+                }
+            }
+            pendingRecognitionWorkItem = workItem
+            DispatchQueue.main.asyncAfter(deadline: .now() + Self.recognitionDebounceDelay, execute: workItem)
+        }
+
+        private func applyRecognizedText(_ object: RecognizedTextObject, in canvasView: PKCanvasView) {
+            // The recognized strokes must still all be present in the
+            // current drawing — if the user kept writing (or erased
+            // something) during the debounce window, this stale result is
+            // discarded rather than removing strokes that no longer match
+            // what was actually recognized.
+            let currentIDs = Set(canvasView.drawing.strokes.map(\.id))
+            guard object.sourceStrokeIDs.isSubset(of: currentIDs) else { return }
+
+            isApplyingRecognitionUpdate = true
+            let remaining = canvasView.drawing.strokes.filter { !object.sourceStrokeIDs.contains($0.id) }
+            canvasView.drawing = PKDrawing(strokes: remaining)
+            isApplyingRecognitionUpdate = false
+
+            textStore.add(object)
+            addTextOverlay(for: object)
+        }
+
+        private func addTextOverlay(for object: RecognizedTextObject) {
+            guard let pageContainer else { return }
+            let label = UILabel()
+            label.text = object.text
+            label.font = availabilityService.resolvedUIFont(
+                for: object.style.font,
+                weight: object.style.weight,
+                size: object.style.size
+            )
+            label.numberOfLines = 0
+            label.frame = object.boundingBox
+            pageContainer.addSubview(label)
         }
     }
 }

@@ -249,3 +249,49 @@ is what makes settings survive a relaunch. The picker itself
 Font," since that's the only place in the app a font+size selection
 makes sense today; Phase 25 is what builds Settings out further, not
 what introduces font selection into it.
+
+## Automatic handwriting-to-text workflow: a second, independent debounce
+
+Phase 11 wires Phases 8-10 together into the actual "write and watch it
+become text" loop: `AutoRecognitionWorkflow` (`Features/Recognition/`)
+composes `StrokeCaptureService` + `PenStrokeFilter` +
+`HandwritingRecognitionService` into one `async` call that returns a
+`RecognizedTextObject?` (`Core/Models/`) — pure data, no UIKit
+dependency, so the whole pipeline is testable against synthetic
+`PKDrawing` data without touching the live canvas.
+
+`PencilCanvasView.Coordinator` schedules this on its own debounce timer
+(`recognitionDebounceDelay`, 0.8s), deliberately longer than the
+existing shape-snap debounce (0.4s) — a stroke that's about to become a
+snapped shape shouldn't be sent to recognition in its rough, pre-snap
+form first. Both timers key off the same `canvasViewDidEndUsingTool`/
+`canvasViewDrawingDidChange` triggers already in place from Phase 7,
+running independently.
+
+The actual recognition work happens off the main actor for free, not
+because of any explicit dispatch: `PKStrokeRecognizer` is itself an
+actor (Section 3 of the build plan), so `await`-ing into
+`HandwritingRecognitionService` already hops off the main thread. The
+`Task { @MainActor in }` wrapping the debounced work item exists for
+the opposite reason — to hop *back* onto the main actor afterward, since
+applying the result (removing source strokes from `canvasView.drawing`,
+adding the rendered `UILabel`) touches UIKit.
+
+On success, source strokes are only removed if every one of them is
+still present in the drawing (`sourceStrokeIDs.isSubset(of:)`) — if the
+user kept writing or erased something during the debounce window, the
+now-stale result is discarded rather than removing strokes that no
+longer match what was actually recognized. This is what "preserve
+original strokes on recognition failure" (Phase 9's architecture note)
+extends to in practice: strokes are only ever removed once there's a
+result that's still valid for them specifically.
+
+Rendering the recognized text is a plain `UILabel` positioned at the
+source strokes' unioned bounding box, using
+`FontAvailabilityService.resolvedUIFont(for:weight:size:)` (added
+alongside the existing SwiftUI-facing `resolvedFont` from Phase 10, not
+replacing it — the canvas layer is UIKit, the Settings picker is
+SwiftUI, and both need the same underlying font resolution). This is
+deliberately rough placement, not a real text-layout system — Phase 12
+is what turns this into properly positioned, line-aware text, and
+Phase 13 is what makes it tappable/editable rather than a static label.

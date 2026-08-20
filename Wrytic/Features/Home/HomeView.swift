@@ -2,6 +2,7 @@ import SwiftUI
 
 struct HomeView: View {
     var store: NotebookStore
+    var fontSettings: FontSettingsStore
 
     var body: some View {
         NavigationStack {
@@ -16,7 +17,7 @@ struct HomeView: View {
                     }
                 }
                 .navigationDestination(for: Notebook.self) { notebook in
-                    CanvasScreen(notebookID: notebook.id, store: store)
+                    CanvasScreen(notebookID: notebook.id, store: store, fontSettings: fontSettings)
                 }
         }
     }

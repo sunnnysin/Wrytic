@@ -1,7 +1,7 @@
 import PencilKit
 import CoreGraphics
 
-protocol StrokeCaptureService {
+protocol StrokeCaptureService: Sendable {
     func capture(from drawing: PKDrawing, shapeSnappedStrokeIDs: Set<UUID>) -> [CapturedStroke]
     func group(_ strokes: [CapturedStroke]) -> [StrokeGroup]
 }

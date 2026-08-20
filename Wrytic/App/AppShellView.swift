@@ -39,7 +39,7 @@ struct AppShellView: View {
             case .settings:
                 SettingsView(fontSettings: fontSettings)
             default:
-                HomeView(store: store)
+                HomeView(store: store, fontSettings: fontSettings)
             }
         }
     }

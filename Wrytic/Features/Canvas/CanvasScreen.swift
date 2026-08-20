@@ -4,14 +4,21 @@ import PencilKit
 struct CanvasScreen: View {
     let notebookID: Notebook.ID
     var store: NotebookStore
+    var fontSettings: FontSettingsStore
     @State private var canvasView = PKCanvasView()
+    @State private var textStore = RecognizedTextStore()
 
     private var notebook: Notebook? {
         store.notebooks.first { $0.id == notebookID }
     }
 
     var body: some View {
-        PencilCanvasView(canvasView: $canvasView, pageStyle: notebook?.pageStyle ?? .blank)
+        PencilCanvasView(
+            canvasView: $canvasView,
+            pageStyle: notebook?.pageStyle ?? .blank,
+            fontSettings: fontSettings,
+            textStore: textStore
+        )
             .ignoresSafeArea()
             .navigationTitle(notebook?.name ?? "")
             .navigationBarTitleDisplayMode(.inline)
