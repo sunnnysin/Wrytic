@@ -5,6 +5,7 @@ struct CanvasScreen: View {
     let notebookID: Notebook.ID
     var store: NotebookStore
     var fontSettings: FontSettingsStore
+    var recognitionSettings: RecognitionSettingsStore
     @State private var canvasView = PKCanvasView()
     @State private var textStore = RecognizedTextStore()
 
@@ -15,8 +16,9 @@ struct CanvasScreen: View {
     var body: some View {
         PencilCanvasView(
             canvasView: $canvasView,
-            pageStyle: notebook?.pageStyle ?? .blank,
+            pageStyle: notebook?.pageStyle ?? .dotted,
             fontSettings: fontSettings,
+            recognitionSettings: recognitionSettings,
             textStore: textStore
         )
             .ignoresSafeArea()

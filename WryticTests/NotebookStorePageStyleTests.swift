@@ -3,10 +3,10 @@ import Foundation
 @testable import Wrytic
 
 struct NotebookStorePageStyleTests {
-    @Test func newNotebookDefaultsToBlankStyle() {
+    @Test func newNotebookDefaultsToDottedStyle() {
         let store = NotebookStore()
         store.createNotebook()
-        #expect(store.notebooks.first?.pageStyle == .blank)
+        #expect(store.notebooks.first?.pageStyle == .dotted)
     }
 
     @Test func updateStylePersistsForTheCorrectNotebook() {
@@ -17,7 +17,7 @@ struct NotebookStorePageStyleTests {
 
         store.updateStyle(for: targetID, style: .grid)
 
-        #expect(store.notebooks[0].pageStyle == .blank)
+        #expect(store.notebooks[0].pageStyle == .dotted)
         #expect(store.notebooks[1].pageStyle == .grid)
     }
 
@@ -26,7 +26,7 @@ struct NotebookStorePageStyleTests {
         store.createNotebook()
         let originalStyle = store.notebooks[0].pageStyle
 
-        store.updateStyle(for: UUID(), style: .dotted)
+        store.updateStyle(for: UUID(), style: .grid)
 
         #expect(store.notebooks[0].pageStyle == originalStyle)
     }

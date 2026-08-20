@@ -5,5 +5,5 @@ struct TextStyle: Codable, Equatable {
     var weight: FontWeight
     var size: CGFloat
 
-    static let `default` = TextStyle(font: .chalkboardSE, weight: .regular, size: 20)
+    static let `default` = TextStyle(font: .noteworthy, weight: .bold, size: 20)
 }

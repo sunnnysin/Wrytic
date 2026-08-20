@@ -5,6 +5,7 @@ struct PencilCanvasView: UIViewRepresentable {
     @Binding var canvasView: PKCanvasView
     var pageStyle: PageStyle
     var fontSettings: FontSettingsStore
+    var recognitionSettings: RecognitionSettingsStore
     var textStore: RecognizedTextStore
 
     func makeUIView(context: Context) -> PencilCanvasScrollView {
@@ -56,7 +57,7 @@ struct PencilCanvasView: UIViewRepresentable {
     }
 
     func makeCoordinator() -> Coordinator {
-        Coordinator(fontSettings: fontSettings, textStore: textStore)
+        Coordinator(fontSettings: fontSettings, recognitionSettings: recognitionSettings, textStore: textStore)
     }
 
     final class Coordinator: NSObject, UIScrollViewDelegate, PKCanvasViewDelegate {
@@ -73,15 +74,28 @@ struct PencilCanvasView: UIViewRepresentable {
         /// line gets snapped shortly after every lift, even a quick doodle
         /// drawn with no pause — the gesture is draw-AND-hold, not just draw.
         static let holdDetectionDelay: TimeInterval = 0.35
-        /// Longer than the shape-snap debounce so a stroke that's about to
-        /// be replaced by a snapped shape is never sent to recognition in
-        /// its rough, pre-snap form.
-        static let recognitionDebounceDelay: TimeInterval = 0.8
+        /// Long enough to let a whole word (or short phrase) get written
+        /// before recognition fires — a short debounce fires mid-word,
+        /// sending isolated letters/fragments to the recognizer with no
+        /// lexical context to disambiguate them, which tanks accuracy far
+        /// more than it would for real handwriting. Resets on every new
+        /// stroke, so continuous writing just keeps pushing this out —
+        /// only genuine pauses of this length trigger it.
+        static let recognitionDebounceDelay: TimeInterval = 3.0
 
         let toolPicker = DrawingToolPickerFactory.makeToolPicker()
         var backgroundView: PageStyleBackgroundView?
         weak var pageContainer: UIView?
-        private var snappedStrokeIDs: Set<UUID> = []
+        var snappedStrokeIDs: Set<UUID> = []
+        /// Every stroke that has already gone through a snap attempt,
+        /// regardless of outcome — guards against re-running
+        /// `attemptSnap` on the same stroke. Deliberately separate from
+        /// `snappedStrokeIDs`, which must only ever contain strokes that
+        /// were actually turned into a shape: `snappedStrokeIDs` is what
+        /// gets reported to the recognition pipeline as "not handwriting",
+        /// and conflating the two silently dropped any handwritten stroke
+        /// that simply paused at the end from ever reaching the recognizer.
+        private var snapEvaluatedStrokeIDs: Set<UUID> = []
         private var pendingSnapWorkItem: DispatchWorkItem?
         private var holdDetectionWorkItem: DispatchWorkItem?
         private var isToolInUse = false
@@ -100,18 +114,37 @@ struct PencilCanvasView: UIViewRepresentable {
         /// a shape that's already been fitted.
         private var isApplyingSelectionUpdate = false
 
-        private let fontSettings: FontSettingsStore
-        private let textStore: RecognizedTextStore
-        private let recognitionWorkflow: HandwritingWorkflowService = AutoRecognitionWorkflow()
-        private let availabilityService: FontAvailabilityService = SystemFontAvailabilityService()
-        private var pendingRecognitionWorkItem: DispatchWorkItem?
+        let fontSettings: FontSettingsStore
+        let recognitionSettings: RecognitionSettingsStore
+        let textStore: RecognizedTextStore
+        let recognitionWorkflow: HandwritingWorkflowService = AutoRecognitionWorkflow()
+        let availabilityService: FontAvailabilityService = SystemFontAvailabilityService()
+        var pendingRecognitionWorkItem: DispatchWorkItem?
+        /// Incremented every time recognition is (re)scheduled. A pending
+        /// async recognition call checks this against its own captured
+        /// value before applying its result — if a newer attempt has been
+        /// scheduled since (even one that's itself still awaiting the
+        /// recognizer), the older, now-stale result is discarded instead of
+        /// being applied on top of a drawing that's moved on. Timer
+        /// cancellation alone isn't enough for this: the recognizer call
+        /// itself is async and can take long enough for a second attempt to
+        /// get scheduled and start before the first one returns.
+        var recognitionGeneration = 0
         /// Set while a successful recognition removes source strokes from
         /// canvasView.drawing, for the same re-entrancy reason as
         /// isApplyingSelectionUpdate above.
-        private var isApplyingRecognitionUpdate = false
+        var isApplyingRecognitionUpdate = false
+        var textLabelsByID: [UUID: UILabel] = [:]
+        var deleteButtonsByID: [UUID: UIButton] = [:]
+        var selectedTextObjectID: UUID?
 
-        init(fontSettings: FontSettingsStore, textStore: RecognizedTextStore) {
+        init(
+            fontSettings: FontSettingsStore,
+            recognitionSettings: RecognitionSettingsStore,
+            textStore: RecognizedTextStore
+        ) {
             self.fontSettings = fontSettings
+            self.recognitionSettings = recognitionSettings
             self.textStore = textStore
         }
 
@@ -168,7 +201,7 @@ struct PencilCanvasView: UIViewRepresentable {
         private func scheduleSnapIfNeeded(in canvasView: PKCanvasView) {
             guard heldDuringCurrentStroke else { return }
             guard let lastStroke = canvasView.drawing.strokes.last,
-                  !snappedStrokeIDs.contains(lastStroke.id) else { return }
+                  !snapEvaluatedStrokeIDs.contains(lastStroke.id) else { return }
 
             let strokeID = lastStroke.id
             let workItem = DispatchWorkItem { [weak self, weak canvasView] in
@@ -183,7 +216,7 @@ struct PencilCanvasView: UIViewRepresentable {
             guard let lastStroke = canvasView.drawing.strokes.last, lastStroke.id == strokeID else { return }
 
             guard let snap = ShapeSnapService.snap(stroke: lastStroke) else {
-                snappedStrokeIDs.insert(lastStroke.id)
+                snapEvaluatedStrokeIDs.insert(lastStroke.id)
                 return
             }
 
@@ -251,10 +284,18 @@ struct PencilCanvasView: UIViewRepresentable {
         }
 
         @objc func handleDeselectTap(_ gesture: UITapGestureRecognizer) {
-            guard let overlay = selectionOverlay, let pageContainer else { return }
+            guard let pageContainer else { return }
             let location = gesture.location(in: pageContainer)
-            guard !overlay.frame.insetBy(dx: -8, dy: -8).contains(location) else { return }
+
+            if let overlay = selectionOverlay, overlay.frame.insetBy(dx: -8, dy: -8).contains(location) {
+                return
+            }
+            if let selectedTextObjectID, let label = textLabelsByID[selectedTextObjectID],
+               label.frame.insetBy(dx: -8, dy: -8).contains(location) {
+                return
+            }
             deselect()
+            deselectTextObject()
         }
 
         private func deselect() {
@@ -265,58 +306,6 @@ struct PencilCanvasView: UIViewRepresentable {
             selectedOriginalStroke = nil
             selectedOriginalPoints = []
             dragStartFit = nil
-        }
-
-        private func scheduleRecognition(in canvasView: PKCanvasView) {
-            let drawing = canvasView.drawing
-            let shapeSnappedIDs = snappedStrokeIDs
-            let style = fontSettings.defaultStyle
-
-            let workItem = DispatchWorkItem { [weak self, weak canvasView] in
-                guard let self, let canvasView else { return }
-                Task { @MainActor in
-                    guard let textObject = await self.recognitionWorkflow.process(
-                        drawing: drawing,
-                        shapeSnappedStrokeIDs: shapeSnappedIDs,
-                        style: style
-                    ) else { return }
-                    self.applyRecognizedText(textObject, in: canvasView)
-                }
-            }
-            pendingRecognitionWorkItem = workItem
-            DispatchQueue.main.asyncAfter(deadline: .now() + Self.recognitionDebounceDelay, execute: workItem)
-        }
-
-        private func applyRecognizedText(_ object: RecognizedTextObject, in canvasView: PKCanvasView) {
-            // The recognized strokes must still all be present in the
-            // current drawing — if the user kept writing (or erased
-            // something) during the debounce window, this stale result is
-            // discarded rather than removing strokes that no longer match
-            // what was actually recognized.
-            let currentIDs = Set(canvasView.drawing.strokes.map(\.id))
-            guard object.sourceStrokeIDs.isSubset(of: currentIDs) else { return }
-
-            isApplyingRecognitionUpdate = true
-            let remaining = canvasView.drawing.strokes.filter { !object.sourceStrokeIDs.contains($0.id) }
-            canvasView.drawing = PKDrawing(strokes: remaining)
-            isApplyingRecognitionUpdate = false
-
-            textStore.add(object)
-            addTextOverlay(for: object)
-        }
-
-        private func addTextOverlay(for object: RecognizedTextObject) {
-            guard let pageContainer else { return }
-            let label = UILabel()
-            label.text = object.text
-            label.font = availabilityService.resolvedUIFont(
-                for: object.style.font,
-                weight: object.style.weight,
-                size: object.style.size
-            )
-            label.numberOfLines = 0
-            label.frame = object.boundingBox
-            pageContainer.addSubview(label)
         }
     }
 }

@@ -19,6 +19,7 @@
 		1F82686DCA4317F6EB7E9F13 /* ShapeSelectionOverlayView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 60C449B978E6CCF6C092EDB1 /* ShapeSelectionOverlayView.swift */; };
 		23562E133D3943B7AE0B5A7D /* AutoRecognitionWorkflow.swift in Sources */ = {isa = PBXBuildFile; fileRef = 661E59191A18B13C9A5DE964 /* AutoRecognitionWorkflow.swift */; };
 		235DB7F574C4CA434A308251 /* FontPickerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = BE2ABA897795B30716D213E8 /* FontPickerView.swift */; };
+		3574C77041C2E20B5290BEC2 /* RecognizedTextStoreTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5C3B29DB74B4DD789C8967B8 /* RecognizedTextStoreTests.swift */; };
 		38152430A0F5313C032DD850 /* PencilCanvasScrollView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6F92FEBCDF700B1445A8050F /* PencilCanvasScrollView.swift */; };
 		3A423A792FE2BE07362FF0BE /* ShapeSnapService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 30878356EFD1289439E7F41F /* ShapeSnapService.swift */; };
 		3ABD01FB99CC2F33D3514C41 /* HomeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D998E57BE28904F90B2F48C6 /* HomeView.swift */; };
@@ -40,12 +41,14 @@
 		7D1123EDC38F3036CCA32F1B /* PencilCanvasConfiguration.swift in Sources */ = {isa = PBXBuildFile; fileRef = ED00C35E2BF888022281D413 /* PencilCanvasConfiguration.swift */; };
 		7FEB514D08DD196F657CCBE7 /* PKStrokeRecognitionServiceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 13004E3BAFC601EF1A0DD6C1 /* PKStrokeRecognitionServiceTests.swift */; };
 		81BD3A1581F4B57FF82223FF /* AppShellView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 119359CB1017ACBAACA2657E /* AppShellView.swift */; };
+		82548061188EDA13499FD1C5 /* RecognitionSettingsStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0F8224349B8704A3A268362C /* RecognitionSettingsStore.swift */; };
 		862DB3A48E2703A499F738B0 /* NotebookStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5A93ACBA1E66D4C47D2730C6 /* NotebookStore.swift */; };
 		97C260598B271DABFFF9002D /* StrokeTool.swift in Sources */ = {isa = PBXBuildFile; fileRef = C5DA2AC6477F5F32C138E1B1 /* StrokeTool.swift */; };
 		9A1838E659C7B4EECC582AF4 /* PencilCanvasView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D6662F683652787C9A26CB5D /* PencilCanvasView.swift */; };
 		9EE45230C4A991E2B17C2C10 /* AutoRecognitionWorkflowTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 09DF5FEACD24BCA6C46E3509 /* AutoRecognitionWorkflowTests.swift */; };
 		A721816F976055460701041D /* CanvasScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1F8F1DF79ADC39C8DB7D91D2 /* CanvasScreen.swift */; };
 		AD47922235C825151AE6191C /* PageStylePatternGeneratorTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9AE990B33C609F974AA688AA /* PageStylePatternGeneratorTests.swift */; };
+		BFDC29F3A9E32928628BC7DA /* PencilCanvasView+Recognition.swift in Sources */ = {isa = PBXBuildFile; fileRef = 22A47191C2615C2384829975 /* PencilCanvasView+Recognition.swift */; };
 		C0E6DE61F853F5D37F5895EF /* HandwritingRecognitionService.swift in Sources */ = {isa = PBXBuildFile; fileRef = DCE32F4604E8C1EC37EA296F /* HandwritingRecognitionService.swift */; };
 		D18A8C441C18075F83F269E5 /* AppFont.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2DE0C6E84B940EDDC4F03463 /* AppFont.swift */; };
 		D1D76C43BE5F48D512E02A42 /* PenStrokeFilterTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = E1315B74E5E9CB39BEB6F258 /* PenStrokeFilterTests.swift */; };
@@ -84,11 +87,13 @@
 		01D55455A051C8A3272DB88A /* ShapePathBuilder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShapePathBuilder.swift; sourceTree = "<group>"; };
 		09DF5FEACD24BCA6C46E3509 /* AutoRecognitionWorkflowTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AutoRecognitionWorkflowTests.swift; sourceTree = "<group>"; };
 		0B76B9E4D894F26CF3819A02 /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
+		0F8224349B8704A3A268362C /* RecognitionSettingsStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecognitionSettingsStore.swift; sourceTree = "<group>"; };
 		119359CB1017ACBAACA2657E /* AppShellView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppShellView.swift; sourceTree = "<group>"; };
 		13004E3BAFC601EF1A0DD6C1 /* PKStrokeRecognitionServiceTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PKStrokeRecognitionServiceTests.swift; sourceTree = "<group>"; };
 		16CDB98592C320A4D81FB0F1 /* RecognizedTextObject.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecognizedTextObject.swift; sourceTree = "<group>"; };
 		1A70DF5149251E7D40DEC120 /* DrawingToolPickerFactory.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DrawingToolPickerFactory.swift; sourceTree = "<group>"; };
 		1F8F1DF79ADC39C8DB7D91D2 /* CanvasScreen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CanvasScreen.swift; sourceTree = "<group>"; };
+		22A47191C2615C2384829975 /* PencilCanvasView+Recognition.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "PencilCanvasView+Recognition.swift"; sourceTree = "<group>"; };
 		2DE0C6E84B940EDDC4F03463 /* AppFont.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppFont.swift; sourceTree = "<group>"; };
 		2FC5AFE8E0B7040DED6A08B2 /* ShapeClassifier.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShapeClassifier.swift; sourceTree = "<group>"; };
 		30878356EFD1289439E7F41F /* ShapeSnapService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShapeSnapService.swift; sourceTree = "<group>"; };
@@ -102,6 +107,7 @@
 		44E74BE4AEE283904C24D62F /* DrawingToolPickerFactoryTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DrawingToolPickerFactoryTests.swift; sourceTree = "<group>"; };
 		4C80B3036233F46F514C3039 /* Notebook.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Notebook.swift; sourceTree = "<group>"; };
 		5A93ACBA1E66D4C47D2730C6 /* NotebookStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotebookStore.swift; sourceTree = "<group>"; };
+		5C3B29DB74B4DD789C8967B8 /* RecognizedTextStoreTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecognizedTextStoreTests.swift; sourceTree = "<group>"; };
 		60C449B978E6CCF6C092EDB1 /* ShapeSelectionOverlayView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShapeSelectionOverlayView.swift; sourceTree = "<group>"; };
 		661E59191A18B13C9A5DE964 /* AutoRecognitionWorkflow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AutoRecognitionWorkflow.swift; sourceTree = "<group>"; };
 		697698EAEF868D6D70711E76 /* WryticApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WryticApp.swift; sourceTree = "<group>"; };
@@ -112,7 +118,7 @@
 		72E42936AE2A407F900FED0B /* RecognizedTextStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecognizedTextStore.swift; sourceTree = "<group>"; };
 		759014E032C663C1A96AA8E1 /* FontAvailabilityServiceTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FontAvailabilityServiceTests.swift; sourceTree = "<group>"; };
 		76226D0202A8C95FA9A4516F /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
-		7745C042BED4A0297391E5C1 /* Wrytic.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = Wrytic.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		7745C042BED4A0297391E5C1 /* Wrytic.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Wrytic.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		77A94C0FEAC8C215976A0915 /* FontSettingsStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FontSettingsStore.swift; sourceTree = "<group>"; };
 		7DA24B3E487F77DD51E7B225 /* ShapeFit+Geometry.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "ShapeFit+Geometry.swift"; sourceTree = "<group>"; };
 		83994A136D8C34D93FA8A2B7 /* NotebookStorePageStyleTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotebookStorePageStyleTests.swift; sourceTree = "<group>"; };
@@ -148,6 +154,7 @@
 				ED00C35E2BF888022281D413 /* PencilCanvasConfiguration.swift */,
 				6F92FEBCDF700B1445A8050F /* PencilCanvasScrollView.swift */,
 				D6662F683652787C9A26CB5D /* PencilCanvasView.swift */,
+				22A47191C2615C2384829975 /* PencilCanvasView+Recognition.swift */,
 			);
 			path = Canvas;
 			sourceTree = "<group>";
@@ -204,6 +211,7 @@
 				32684D60EAFC20753A656B4A /* PencilCanvasConfigurationTests.swift */,
 				E1315B74E5E9CB39BEB6F258 /* PenStrokeFilterTests.swift */,
 				13004E3BAFC601EF1A0DD6C1 /* PKStrokeRecognitionServiceTests.swift */,
+				5C3B29DB74B4DD789C8967B8 /* RecognizedTextStoreTests.swift */,
 				3A7D4C8360D8F19D8C2D2172 /* ShapeClassifierTests.swift */,
 				6C8718017FB599774AF3121A /* ShapeSnapServiceTests.swift */,
 				3BD38EBD2747CC0BCF31C620 /* StrokeCaptureServiceTests.swift */,
@@ -236,6 +244,7 @@
 			children = (
 				77A94C0FEAC8C215976A0915 /* FontSettingsStore.swift */,
 				5A93ACBA1E66D4C47D2730C6 /* NotebookStore.swift */,
+				0F8224349B8704A3A268362C /* RecognitionSettingsStore.swift */,
 				72E42936AE2A407F900FED0B /* RecognizedTextStore.swift */,
 				71DC0648B35127E4DE6E7D72 /* StrokeCaptureService.swift */,
 			);
@@ -472,6 +481,7 @@
 				AD47922235C825151AE6191C /* PageStylePatternGeneratorTests.swift in Sources */,
 				D1D76C43BE5F48D512E02A42 /* PenStrokeFilterTests.swift in Sources */,
 				7857F54CD82F87D8BA620E7D /* PencilCanvasConfigurationTests.swift in Sources */,
+				3574C77041C2E20B5290BEC2 /* RecognizedTextStoreTests.swift in Sources */,
 				E6208DCF8DCCE62313256863 /* ShapeClassifierTests.swift in Sources */,
 				196461FB9CE7C0940B708ACB /* ShapeSnapServiceTests.swift in Sources */,
 				506FC7CDD01779EF203581A4 /* StrokeCaptureServiceTests.swift in Sources */,
@@ -507,7 +517,9 @@
 				171768942E407B53687A57A0 /* PenStrokeFilter.swift in Sources */,
 				7D1123EDC38F3036CCA32F1B /* PencilCanvasConfiguration.swift in Sources */,
 				38152430A0F5313C032DD850 /* PencilCanvasScrollView.swift in Sources */,
+				BFDC29F3A9E32928628BC7DA /* PencilCanvasView+Recognition.swift in Sources */,
 				9A1838E659C7B4EECC582AF4 /* PencilCanvasView.swift in Sources */,
+				82548061188EDA13499FD1C5 /* RecognitionSettingsStore.swift in Sources */,
 				1F820C4CDB169A435541AA05 /* RecognizedTextObject.swift in Sources */,
 				7C1CEA6BDACD5E7FACADC77A /* RecognizedTextStore.swift in Sources */,
 				3DDEAB1A7CF979654F52CCB6 /* SettingsView.swift in Sources */,
@@ -606,6 +618,7 @@
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
 				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = U9Q25G4KPW;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = "Generated/Wrytic-Info.plist";
 				IPHONEOS_DEPLOYMENT_TARGET = 27.0;
@@ -684,6 +697,7 @@
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
 				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = U9Q25G4KPW;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = "Generated/Wrytic-Info.plist";
 				IPHONEOS_DEPLOYMENT_TARGET = 27.0;

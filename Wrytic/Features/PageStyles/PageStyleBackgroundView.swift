@@ -1,7 +1,7 @@
 import UIKit
 
 final class PageStyleBackgroundView: UIView {
-    var style: PageStyle = .blank {
+    var style: PageStyle = .dotted {
         didSet {
             guard style != oldValue else { return }
             setNeedsDisplay()

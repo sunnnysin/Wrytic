@@ -5,5 +5,5 @@ protocol HandwritingWorkflowService: Sendable {
         drawing: PKDrawing,
         shapeSnappedStrokeIDs: Set<UUID>,
         style: TextStyle
-    ) async -> RecognizedTextObject?
+    ) async -> [RecognizedTextObject]
 }
