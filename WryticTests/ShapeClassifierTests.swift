@@ -80,6 +80,24 @@ struct ShapeClassifierTests {
         #expect(ShapeClassifier.classify(points: points) == nil)
     }
 
+    @Test func strokeWithArrowheadFlickClassifiesAsArrow() {
+        let tail = CGPoint(x: 0, y: 0)
+        let head = CGPoint(x: 150, y: -60)
+        let points = arrowPoints(tail: tail, head: head, headAngle: 30, headRatio: 0.2)
+        #expect(ShapeClassifier.classify(points: points) == .arrow)
+    }
+
+    @Test func arrowFitPointsTailAtOppositeEndFromHead() {
+        let tail = CGPoint(x: 0, y: 0)
+        let head = CGPoint(x: 150, y: -60)
+        let points = arrowPoints(tail: tail, head: head, headAngle: 30, headRatio: 0.2)
+        guard case let .arrow(tail, head) = ShapeClassifier.fit(points: points) else {
+            Issue.record("Expected an arrow fit")
+            return
+        }
+        #expect(distanceSquared(tail, CGPoint(x: 0, y: 0)) < distanceSquared(head, CGPoint(x: 0, y: 0)))
+    }
+
     @Test func fitProducesLineWithOriginalEndpoints() {
         let points = stride(from: 0, through: 100, by: 5).map { CGPoint(x: CGFloat($0), y: 40) }
         guard case let .line(start, end) = ShapeClassifier.fit(points: points) else {
@@ -88,6 +106,32 @@ struct ShapeClassifierTests {
         }
         #expect(start == points.first)
         #expect(end == points.last)
+    }
+
+    private func arrowPoints(tail: CGPoint, head: CGPoint, headAngle: CGFloat, headRatio: CGFloat) -> [CGPoint] {
+        let shaftLength = ShapeClassifier.distance(tail, head)
+        let dx = (tail.x - head.x) / shaftLength
+        let dy = (tail.y - head.y) / shaftLength
+        let headLength = shaftLength * headRatio
+        let angle = headAngle * .pi / 180
+        func rotate(_ x: CGFloat, _ y: CGFloat, by angle: CGFloat) -> CGPoint {
+            CGPoint(x: x * cos(angle) - y * sin(angle), y: x * sin(angle) + y * cos(angle))
+        }
+        let flank1Direction = rotate(dx, dy, by: angle)
+        let flank2Direction = rotate(dx, dy, by: -angle)
+        let flank1 = CGPoint(x: head.x + flank1Direction.x * headLength, y: head.y + flank1Direction.y * headLength)
+        let flank2 = CGPoint(x: head.x + flank2Direction.x * headLength, y: head.y + flank2Direction.y * headLength)
+        var points = samplePerimeter(corners: [tail, head], samplesPerSegment: 20)
+        points += samplePerimeter(corners: [head, flank1], samplesPerSegment: 8)
+        points += samplePerimeter(corners: [flank1, head], samplesPerSegment: 8)
+        points += samplePerimeter(corners: [head, flank2], samplesPerSegment: 8)
+        return points
+    }
+
+    private func distanceSquared(_ pointA: CGPoint, _ pointB: CGPoint) -> CGFloat {
+        let dx = pointA.x - pointB.x
+        let dy = pointA.y - pointB.y
+        return dx * dx + dy * dy
     }
 
     private func roundedRectanglePoints(rect: CGRect, cornerRadius: CGFloat) -> [CGPoint] {

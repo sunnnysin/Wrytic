@@ -57,12 +57,20 @@ struct PencilCanvasView: UIViewRepresentable {
         /// keep generating points while the Pencil is held still, so a
         /// point-timing-based "hold" check is unreliable in practice.
         static let shapeSnapDebounceDelay: TimeInterval = 0.4
+        /// How long the pencil must stay down without adding new points
+        /// before a stroke counts as "held" and becomes eligible for
+        /// snapping at all. Without this, any closed shape or straight
+        /// line gets snapped shortly after every lift, even a quick doodle
+        /// drawn with no pause — the gesture is draw-AND-hold, not just draw.
+        static let holdDetectionDelay: TimeInterval = 0.35
 
         let toolPicker = DrawingToolPickerFactory.makeToolPicker()
         var backgroundView: PageStyleBackgroundView?
         private var snappedStrokeIDs: Set<UUID> = []
         private var pendingSnapWorkItem: DispatchWorkItem?
+        private var holdDetectionWorkItem: DispatchWorkItem?
         private var isToolInUse = false
+        private var heldDuringCurrentStroke = false
 
         func viewForZooming(in scrollView: UIScrollView) -> UIView? {
             (scrollView as? PencilCanvasScrollView)?.pageContainer
@@ -70,15 +78,25 @@ struct PencilCanvasView: UIViewRepresentable {
 
         func canvasViewDidBeginUsingTool(_ canvasView: PKCanvasView) {
             isToolInUse = true
+            heldDuringCurrentStroke = false
+            scheduleHoldDetection()
         }
 
         func canvasViewDidEndUsingTool(_ canvasView: PKCanvasView) {
             isToolInUse = false
+            holdDetectionWorkItem?.cancel()
             scheduleSnapIfNeeded(in: canvasView)
         }
 
         func canvasViewDrawingDidChange(_ canvasView: PKCanvasView) {
             pendingSnapWorkItem?.cancel()
+            if isToolInUse {
+                // Still moving — a genuine hold requires no new points for
+                // holdDetectionDelay while the pencil stays down, so any
+                // further movement resets that clock.
+                scheduleHoldDetection()
+                return
+            }
             // Pressure data lags touch data, so PencilKit can still deliver a
             // final, corrected version of the stroke after the pencil lifts
             // (canvasViewDidEndUsingTool already fired). Scheduling from
@@ -88,11 +106,20 @@ struct PencilCanvasView: UIViewRepresentable {
             // sometimes crossing the rectangle/ellipse threshold the other
             // way. Only scheduling once the tool is no longer in use avoids
             // classifying anything but the finished stroke.
-            guard !isToolInUse else { return }
             scheduleSnapIfNeeded(in: canvasView)
         }
 
+        private func scheduleHoldDetection() {
+            holdDetectionWorkItem?.cancel()
+            let workItem = DispatchWorkItem { [weak self] in
+                self?.heldDuringCurrentStroke = true
+            }
+            holdDetectionWorkItem = workItem
+            DispatchQueue.main.asyncAfter(deadline: .now() + Self.holdDetectionDelay, execute: workItem)
+        }
+
         private func scheduleSnapIfNeeded(in canvasView: PKCanvasView) {
+            guard heldDuringCurrentStroke else { return }
             guard let lastStroke = canvasView.drawing.strokes.last,
                   !snappedStrokeIDs.contains(lastStroke.id) else { return }
 
