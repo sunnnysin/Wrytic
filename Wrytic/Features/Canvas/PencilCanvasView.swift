@@ -31,6 +31,14 @@ struct PencilCanvasView: UIViewRepresentable {
         scrollView.addSubview(pageContainer)
         scrollView.pageContainer = pageContainer
         context.coordinator.backgroundView = backgroundView
+        context.coordinator.pageContainer = pageContainer
+
+        let deselectTap = UITapGestureRecognizer(
+            target: context.coordinator,
+            action: #selector(Coordinator.handleDeselectTap(_:))
+        )
+        deselectTap.cancelsTouchesInView = false
+        pageContainer.addGestureRecognizer(deselectTap)
 
         canvasView.delegate = context.coordinator
 
@@ -66,11 +74,25 @@ struct PencilCanvasView: UIViewRepresentable {
 
         let toolPicker = DrawingToolPickerFactory.makeToolPicker()
         var backgroundView: PageStyleBackgroundView?
+        weak var pageContainer: UIView?
         private var snappedStrokeIDs: Set<UUID> = []
         private var pendingSnapWorkItem: DispatchWorkItem?
         private var holdDetectionWorkItem: DispatchWorkItem?
         private var isToolInUse = false
         private var heldDuringCurrentStroke = false
+
+        private var selectionOverlay: ShapeSelectionOverlayView?
+        private var selectedStrokeID: UUID?
+        private var selectedFit: ShapeFit?
+        private var selectedOriginalStroke: PKStroke?
+        private var selectedOriginalPoints: [PKStrokePoint] = []
+        private var dragStartFit: ShapeFit?
+        private weak var activeCanvasView: PKCanvasView?
+        /// Set while a selection-driven update writes to canvasView.drawing,
+        /// so that write's own canvasViewDrawingDidChange callback doesn't
+        /// re-enter the auto-snap debounce pipeline and try to reclassify
+        /// a shape that's already been fitted.
+        private var isApplyingSelectionUpdate = false
 
         func viewForZooming(in scrollView: UIScrollView) -> UIView? {
             (scrollView as? PencilCanvasScrollView)?.pageContainer
@@ -89,6 +111,7 @@ struct PencilCanvasView: UIViewRepresentable {
         }
 
         func canvasViewDrawingDidChange(_ canvasView: PKCanvasView) {
+            guard !isApplyingSelectionUpdate else { return }
             pendingSnapWorkItem?.cancel()
             if isToolInUse {
                 // Still moving — a genuine hold requires no new points for
@@ -135,15 +158,89 @@ struct PencilCanvasView: UIViewRepresentable {
         private func attemptSnap(strokeID: UUID, in canvasView: PKCanvasView) {
             guard let lastStroke = canvasView.drawing.strokes.last, lastStroke.id == strokeID else { return }
 
-            guard let snapped = ShapeSnapService.snappedStroke(for: lastStroke) else {
+            guard let snap = ShapeSnapService.snap(stroke: lastStroke) else {
                 snappedStrokeIDs.insert(lastStroke.id)
                 return
             }
 
-            snappedStrokeIDs.insert(snapped.id)
+            snappedStrokeIDs.insert(snap.stroke.id)
             var strokes = canvasView.drawing.strokes
-            strokes[strokes.count - 1] = snapped
+            strokes[strokes.count - 1] = snap.stroke
             canvasView.drawing = PKDrawing(strokes: strokes)
+
+            select(strokeID: snap.stroke.id, fit: snap.fit, originalStroke: lastStroke, in: canvasView)
+        }
+
+        private func select(strokeID: UUID, fit: ShapeFit, originalStroke: PKStroke, in canvasView: PKCanvasView) {
+            guard let pageContainer else { return }
+
+            selectedStrokeID = strokeID
+            selectedFit = fit
+            selectedOriginalStroke = originalStroke
+            selectedOriginalPoints = Array(originalStroke.path)
+            activeCanvasView = canvasView
+
+            let overlay = selectionOverlay ?? makeSelectionOverlay(in: pageContainer)
+            overlay.update(boundingBox: fit.boundingBox)
+        }
+
+        private func makeSelectionOverlay(in pageContainer: UIView) -> ShapeSelectionOverlayView {
+            let overlay = ShapeSelectionOverlayView()
+            overlay.onMove = { [weak self] translation in
+                self?.applySelectionUpdate { fit in fit.translated(by: translation) }
+            }
+            overlay.onResize = { [weak self] newCorner in
+                self?.applySelectionUpdate { fit in fit.resized(draggingCornerTo: newCorner) }
+            }
+            overlay.onGestureEnded = { [weak self] in
+                self?.dragStartFit = nil
+            }
+            pageContainer.addSubview(overlay)
+            selectionOverlay = overlay
+            return overlay
+        }
+
+        private func applySelectionUpdate(_ transform: (ShapeFit) -> ShapeFit) {
+            guard let baseFit = dragStartFit ?? selectedFit,
+                  let canvasView = activeCanvasView,
+                  let strokeID = selectedStrokeID,
+                  let originalStroke = selectedOriginalStroke,
+                  let index = canvasView.drawing.strokes.firstIndex(where: { $0.id == strokeID }) else { return }
+            if dragStartFit == nil { dragStartFit = selectedFit }
+
+            let newFit = transform(baseFit)
+            let newStroke = ShapeSnapService.buildStroke(
+                for: newFit,
+                matching: originalStroke,
+                originalPoints: selectedOriginalPoints
+            )
+
+            isApplyingSelectionUpdate = true
+            var strokes = canvasView.drawing.strokes
+            strokes[index] = newStroke
+            canvasView.drawing = PKDrawing(strokes: strokes)
+            isApplyingSelectionUpdate = false
+
+            selectedStrokeID = newStroke.id
+            selectedFit = newFit
+            selectionOverlay?.update(boundingBox: newFit.boundingBox)
+        }
+
+        @objc func handleDeselectTap(_ gesture: UITapGestureRecognizer) {
+            guard let overlay = selectionOverlay, let pageContainer else { return }
+            let location = gesture.location(in: pageContainer)
+            guard !overlay.frame.insetBy(dx: -8, dy: -8).contains(location) else { return }
+            deselect()
+        }
+
+        private func deselect() {
+            selectionOverlay?.removeFromSuperview()
+            selectionOverlay = nil
+            selectedStrokeID = nil
+            selectedFit = nil
+            selectedOriginalStroke = nil
+            selectedOriginalPoints = []
+            dragStartFit = nil
         }
     }
 }

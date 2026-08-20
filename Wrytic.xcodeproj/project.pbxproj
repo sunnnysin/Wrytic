@@ -12,11 +12,13 @@
 		147F2A65FF7F96A1DD59B581 /* Notebook.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4C80B3036233F46F514C3039 /* Notebook.swift */; };
 		17F68A269A85CFB99DC71EA7 /* ShapeClassifier.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2FC5AFE8E0B7040DED6A08B2 /* ShapeClassifier.swift */; };
 		196461FB9CE7C0940B708ACB /* ShapeSnapServiceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6C8718017FB599774AF3121A /* ShapeSnapServiceTests.swift */; };
+		1F82686DCA4317F6EB7E9F13 /* ShapeSelectionOverlayView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 60C449B978E6CCF6C092EDB1 /* ShapeSelectionOverlayView.swift */; };
 		38152430A0F5313C032DD850 /* PencilCanvasScrollView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6F92FEBCDF700B1445A8050F /* PencilCanvasScrollView.swift */; };
 		3A423A792FE2BE07362FF0BE /* ShapeSnapService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 30878356EFD1289439E7F41F /* ShapeSnapService.swift */; };
 		3ABD01FB99CC2F33D3514C41 /* HomeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D998E57BE28904F90B2F48C6 /* HomeView.swift */; };
 		3DDEAB1A7CF979654F52CCB6 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0B76B9E4D894F26CF3819A02 /* SettingsView.swift */; };
 		4414379181D2292FF46A3049 /* NotebookListView.swift in Sources */ = {isa = PBXBuildFile; fileRef = BE1E45D53E9556D30B99368E /* NotebookListView.swift */; };
+		4F8DC8E310737A9F2638D44D /* ShapeFit+Geometry.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7DA24B3E487F77DD51E7B225 /* ShapeFit+Geometry.swift */; };
 		5F5E355FF62E782B4B1F0286 /* PageStyleBackgroundView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F433CB542816DEC73ABEE38D /* PageStyleBackgroundView.swift */; };
 		7235AE080B2B5C385A7E2B9D /* PageStylePatternGenerator.swift in Sources */ = {isa = PBXBuildFile; fileRef = 320BA8CEEA143C917BD9E925 /* PageStylePatternGenerator.swift */; };
 		742F6C4337FBAB925B461C58 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 76226D0202A8C95FA9A4516F /* Assets.xcassets */; };
@@ -71,12 +73,14 @@
 		44E74BE4AEE283904C24D62F /* DrawingToolPickerFactoryTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DrawingToolPickerFactoryTests.swift; sourceTree = "<group>"; };
 		4C80B3036233F46F514C3039 /* Notebook.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Notebook.swift; sourceTree = "<group>"; };
 		5A93ACBA1E66D4C47D2730C6 /* NotebookStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotebookStore.swift; sourceTree = "<group>"; };
+		60C449B978E6CCF6C092EDB1 /* ShapeSelectionOverlayView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShapeSelectionOverlayView.swift; sourceTree = "<group>"; };
 		697698EAEF868D6D70711E76 /* WryticApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WryticApp.swift; sourceTree = "<group>"; };
 		6C8718017FB599774AF3121A /* ShapeSnapServiceTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShapeSnapServiceTests.swift; sourceTree = "<group>"; };
 		6F92FEBCDF700B1445A8050F /* PencilCanvasScrollView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PencilCanvasScrollView.swift; sourceTree = "<group>"; };
 		724E369D2024A67BB511AB7A /* WryticTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WryticTests.swift; sourceTree = "<group>"; };
 		76226D0202A8C95FA9A4516F /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		7745C042BED4A0297391E5C1 /* Wrytic.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = Wrytic.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		7DA24B3E487F77DD51E7B225 /* ShapeFit+Geometry.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "ShapeFit+Geometry.swift"; sourceTree = "<group>"; };
 		83994A136D8C34D93FA8A2B7 /* NotebookStorePageStyleTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotebookStorePageStyleTests.swift; sourceTree = "<group>"; };
 		9AE990B33C609F974AA688AA /* PageStylePatternGeneratorTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PageStylePatternGeneratorTests.swift; sourceTree = "<group>"; };
 		A334B50362AD9AC4E12FCE70 /* StrokeToolTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StrokeToolTests.swift; sourceTree = "<group>"; };
@@ -129,7 +133,9 @@
 			children = (
 				2FC5AFE8E0B7040DED6A08B2 /* ShapeClassifier.swift */,
 				F0DC645A8AB0DD689317CD2C /* ShapeFit.swift */,
+				7DA24B3E487F77DD51E7B225 /* ShapeFit+Geometry.swift */,
 				01D55455A051C8A3272DB88A /* ShapePathBuilder.swift */,
+				60C449B978E6CCF6C092EDB1 /* ShapeSelectionOverlayView.swift */,
 				30878356EFD1289439E7F41F /* ShapeSnapService.swift */,
 				F2B2086F0CE10F2B818FC6F7 /* ShapeType.swift */,
 			);
@@ -409,8 +415,10 @@
 				9A1838E659C7B4EECC582AF4 /* PencilCanvasView.swift in Sources */,
 				3DDEAB1A7CF979654F52CCB6 /* SettingsView.swift in Sources */,
 				17F68A269A85CFB99DC71EA7 /* ShapeClassifier.swift in Sources */,
+				4F8DC8E310737A9F2638D44D /* ShapeFit+Geometry.swift in Sources */,
 				FDF38148036F7AA0325FEBDF /* ShapeFit.swift in Sources */,
 				E6ED868E13E70AEDA781219A /* ShapePathBuilder.swift in Sources */,
+				1F82686DCA4317F6EB7E9F13 /* ShapeSelectionOverlayView.swift in Sources */,
 				3A423A792FE2BE07362FF0BE /* ShapeSnapService.swift in Sources */,
 				FCA8E32E9B9F9FDF4E8D1B86 /* ShapeType.swift in Sources */,
 				97C260598B271DABFFF9002D /* StrokeTool.swift in Sources */,
