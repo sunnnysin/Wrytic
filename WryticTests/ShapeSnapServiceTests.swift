@@ -46,10 +46,11 @@ struct ShapeSnapServiceTests {
         }
 
         let stroke = makeStroke(points: points)
-        let snapped = ShapeSnapService.snappedStroke(for: stroke)
+        let snapped = ShapeSnapService.snap(stroke: stroke)
 
         #expect(snapped != nil)
-        #expect(snapped?.ink.inkType == .pen)
+        #expect(snapped?.stroke.ink.inkType == .pen)
+        #expect(snapped?.fit == .rectangle(CGRect(x: 0, y: 0, width: 120, height: 80)))
     }
 
     @Test func zigzagScribbleIsNotSnapped() {
@@ -58,6 +59,6 @@ struct ShapeSnapServiceTests {
             makePoint(x: CGFloat(index) * 10, y: yOffset, timeOffset: TimeInterval(index) * 0.03)
         }
         let stroke = makeStroke(points: points)
-        #expect(ShapeSnapService.snappedStroke(for: stroke) == nil)
+        #expect(ShapeSnapService.snap(stroke: stroke) == nil)
     }
 }
