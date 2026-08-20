@@ -249,3 +249,249 @@ is what makes settings survive a relaunch. The picker itself
 Font," since that's the only place in the app a font+size selection
 makes sense today; Phase 25 is what builds Settings out further, not
 what introduces font selection into it.
+
+## Automatic handwriting-to-text workflow: a second, independent debounce
+
+Phase 11 wires Phases 8-10 together into the actual "write and watch it
+become text" loop: `AutoRecognitionWorkflow` (`Features/Recognition/`)
+composes `StrokeCaptureService` + `PenStrokeFilter` +
+`HandwritingRecognitionService` into one `async` call that returns a
+`RecognizedTextObject?` (`Core/Models/`) — pure data, no UIKit
+dependency, so the whole pipeline is testable against synthetic
+`PKDrawing` data without touching the live canvas.
+
+`PencilCanvasView.Coordinator` schedules this on its own debounce timer
+(`recognitionDebounceDelay`, 3.0s), deliberately longer than the
+existing shape-snap debounce (0.4s) — a stroke that's about to become a
+snapped shape shouldn't be sent to recognition in its rough, pre-snap
+form first. Both timers key off the same `canvasViewDidEndUsingTool`/
+`canvasViewDrawingDidChange` triggers already in place from Phase 7,
+running independently.
+
+3.0s (rather than something snappier like 0.8s, tried first) came from
+on-device testing: a short debounce reliably fires mid-word, sending
+isolated letter fragments to the recognizer with no surrounding word to
+disambiguate against — accuracy on a lone letter is dramatically worse
+than on a real word, since the model leans on lexical context. The
+debounce resets on every new stroke regardless of length, so continuous
+writing just keeps pushing the fire time out — only a genuine pause
+this long triggers conversion, which is what lets a full word or short
+phrase get written before anything is sent to recognition.
+
+The actual recognition work happens off the main actor for free, not
+because of any explicit dispatch: `PKStrokeRecognizer` is itself an
+actor (Section 3 of the build plan), so `await`-ing into
+`HandwritingRecognitionService` already hops off the main thread. The
+`Task { @MainActor in }` wrapping the debounced work item exists for
+the opposite reason — to hop *back* onto the main actor afterward, since
+applying the result (removing source strokes from `canvasView.drawing`,
+adding the rendered `UILabel`) touches UIKit.
+
+On success, source strokes are only removed if every one of them is
+still present in the drawing (`sourceStrokeIDs.isSubset(of:)`) — if the
+user kept writing or erased something during the debounce window, the
+now-stale result is discarded rather than removing strokes that no
+longer match what was actually recognized. This is what "preserve
+original strokes on recognition failure" (Phase 9's architecture note)
+extends to in practice: strokes are only ever removed once there's a
+result that's still valid for them specifically.
+
+Rendering the recognized text is a plain `UILabel` positioned at the
+source strokes' unioned bounding box, using
+`FontAvailabilityService.resolvedUIFont(for:weight:size:)` (added
+alongside the existing SwiftUI-facing `resolvedFont` from Phase 10, not
+replacing it — the canvas layer is UIKit, the Settings picker is
+SwiftUI, and both need the same underlying font resolution). This is
+deliberately rough placement, not a real text-layout system — Phase 12
+is what turns this into properly positioned, line-aware text, and
+Phase 13 is what makes it tappable/editable rather than a static label.
+
+### Fixing a real fragmentation bug: timer cancellation wasn't enough
+
+On-device testing surfaced a real bug in the debounce design above: a
+multi-word phrase was fragmenting into several small, garbled
+conversions instead of one clean recognition, with leftover unconverted
+ink remaining alongside them. Cancelling `pendingRecognitionWorkItem`
+before scheduling a new one (already in place) turned out to be
+necessary but not sufficient — the recognizer call itself is `async`
+and can take long enough that a *second* debounce timer fires and
+starts its own recognition attempt before the *first* one's call to
+`recognizedText(strokeIDs:)` has even returned. Both attempts then land
+and mutate the drawing, each against a different partial slice of what
+had been written.
+
+Fixed with a generation counter (`recognitionGeneration`): every
+`scheduleRecognition` call increments it and captures its own value;
+the async continuation checks that the counter still matches its
+captured value immediately before calling `applyRecognizedText`, and
+discards the result otherwise. This closes the gap timer-cancellation
+alone can't — it doesn't matter how long the recognizer call takes,
+only whether a newer attempt has since been scheduled.
+
+### Settings toggle: `RecognitionSettingsStore.isAutoConvertEnabled`
+
+A user can reasonably want to write without every stroke eventually
+disappearing into text — added `RecognitionSettingsStore`
+(`Core/Services/`), the same in-memory placeholder pattern as
+`FontSettingsStore`/`NotebookStore`, with a single `isAutoConvertEnabled`
+flag exposed as a toggle in Settings. `scheduleRecognition` checks it
+before doing any work, so disabling it stops new conversions outright
+without needing to touch the recognition pipeline itself.
+
+### Fixing the fragmentation bug for real: line-scoped recognition, not a session-long recognizer
+
+The generation-counter fix above closed one real race, but on-device
+testing showed multi-word phrases were still fragmenting — a clean
+phrase like "Satyam Kumar Singh how are you" was coming back as a
+garbled few words with scattered, partially-erased ink left over. Two
+architectural choices turned out to matter more than another timing
+patch:
+
+- **Recognizing the whole page as one flat blob of "all currently
+  un-recognized pen strokes" was the wrong scope.** `AutoRecognitionWorkflow`
+  now groups pen strokes into spatial lines first, using
+  `StrokeCaptureService.group(_:)` — already built in Phase 8 for
+  exactly this, but never actually plugged into the Phase 11 pipeline
+  until now — and calls `recognizedText(strokeIDs:)` once per line
+  group, producing a separate `RecognizedTextObject` per group. A bad
+  recognition on one line can no longer bleed into or corrupt a
+  different line, and each result's bounding box is that group's own
+  (`StrokeGroup.boundingBox`), not a union spanning unrelated content.
+- **A single `PKStrokeRecognizer` reused for the whole canvas session is
+  conservative to avoid.** The SDK documents scoping one loaded drawing
+  to multiple `strokeIDs` subsets as intended usage (confirmed via
+  Apple's WWDC session on this API), but says nothing about accuracy
+  across a long-lived instance fed a growing-then-shrinking drawing over
+  many separate calls spread out over real time. `AutoRecognitionWorkflow`
+  now takes a `makeRecognitionService` factory and constructs a fresh
+  recognizer per recognition attempt instead of reusing one held by the
+  `Coordinator` — cheap to construct, and removes any possibility of
+  accumulated state across attempts as a variable.
+
+`HandwritingWorkflowService.process` returns `[RecognizedTextObject]`
+now (one per successfully recognized line group) instead of a single
+optional, and `PencilCanvasView.Coordinator` applies each result in the
+loop it gets back.
+
+### Deleting converted text: tap-to-select, not the eraser tool
+
+The first attempt at this used a `UIPanGestureRecognizer` restricted to
+Pencil touches, tracking the eraser tool via `PKToolPickerObserver`, to
+let the eraser remove text overlays the same way it removes ink. It
+didn't work, and research into how PencilKit apps are built confirmed
+why it couldn't reliably: `canvasView.drawingPolicy = .pencilOnly`
+means `PKCanvasView` exclusively claims Pencil touches for its own
+internal stroke handling, and a sibling gesture recognizer competing
+for the same Pencil touches is a documented source of conflict in
+PencilKit apps, not a solvable timing issue.
+
+The fix drops the eraser angle entirely and reuses the same
+tap-based pattern already proven for shape selection
+(`handleDeselectTap`): converted text is a `UILabel`, a genuinely
+separate view from `canvasView`, so a plain finger tap on it is never
+in contention with `.pencilOnly` — that policy only governs what
+canvasView itself treats as ink, not what a sibling view's own gesture
+recognizer receives. Tapping a converted text object selects it (a blue
+border plus a small delete button); tapping it again, tapping the
+delete button, or tapping elsewhere follows the same
+select/confirm/deselect shape the shape-selection overlay already
+established.
+
+### The actual fragmentation root cause: a stroke-classification bug, not timing
+
+Every fix above (generation counter, line-scoped recognition, fresh
+recognizer instances) was necessary but none of them were the actual
+cause of the on-device fragmentation bug. The real bug was in
+`PencilCanvasView.Coordinator.attemptSnap` (shape recognition, Phase
+7): when `ShapeSnapService.snap` correctly decided a stroke was *not* a
+shape, the code still called `snappedStrokeIDs.insert(lastStroke.id)`.
+That set was doing two unrelated jobs at once — "don't re-run shape
+detection on this stroke" and "this stroke is a shape, exclude it from
+handwriting recognition" (`StrokeTool.from(_:isShapeSnapped:)` reads it
+for the latter). Any ordinary letter stroke where the Pencil paused
+briefly at the end — completely normal while forming letters, and
+`holdDetectionDelay` is only 0.35s — got permanently misclassified as
+`.shape` and silently dropped by `PenStrokeFilter` before recognition
+ever ran, even though it was correctly rejected as *not* a shape and
+stayed on the canvas as ordinary ink. Confirmed via on-device logging:
+writing "Satyam Kumar Singh" (16 strokes) only sent 9 to the recognizer,
+producing the exact garbled/fragmented symptom seen. Fixed by splitting
+the guard-only concern into its own `snapEvaluatedStrokeIDs` set,
+leaving `snappedStrokeIDs` to mean only "actually became a shape."
+
+### Writing over/below converted text: `RecognizedTextLabel` hit-testing
+
+The `UILabel` used for converted text sits above `PKCanvasView` in
+`pageContainer`, and as a normal `UIView` it claims every touch inside
+its frame during hit-testing — including Pencil touches — before
+`canvasView` ever sees them. `.pencilOnly` only governs what
+`canvasView` itself treats as ink; it has no effect on a sibling view's
+hit-testing. `RecognizedTextLabel` overrides `hitTest(_:with:)` to
+return `nil` whenever the touch is a Pencil touch, letting it fall
+through to `canvasView` below, while finger touches still resolve
+normally for tap-to-select.
+
+### Per-line text objects, not per-paragraph, and font-derived label sizing
+
+Two related problems showed up once real multi-line notes were tested:
+tapping a text object deleted an entire paragraph at once, and the
+label blocked Pencil input far beyond where the actual text sat.
+Both traced to `StrokeCaptureService.group(_:)`: its "shares line" check
+compares a candidate stroke against the group's own *union* bounding
+box, which grows every time a stroke joins — with no ceiling, that
+growing union eventually reaches into the next line too, and merging
+snowballs into one group spanning a whole paragraph. (A height cap on
+that union was tried and reverted — it broke ordinary letters with
+larger ascenders/descenders for bigger handwriting, misreading them as
+separate lines. See below for the approach that actually replaced it.)
+
+Two independent fixes:
+- The label's frame is now derived from the font size
+  (`ceil(style.size * 1.25)`) with `RecognizedTextLabel` vertically
+  centering the glyphs inside it, instead of `sizeToFit`'s tight box —
+  keeps the hit-testable/dead-zone area predictable and proportional to
+  the chosen font size regardless of the font's own metrics.
+- Grouping itself was left as designed (whole-union-based, uncapped);
+  what actually needed to change was scope, covered next.
+
+### Tried and reverted: recombining strokes across recognition passes
+
+To let writing more on an existing line extend it instead of creating a
+disconnected fragment, `RecognizedTextObject` briefly gained a
+`sourceStrokes: [PKStroke]` field, and new ink whose bounding box fell
+within an existing line's vertical band was recombined with that line's
+retained strokes and re-recognized as one unit. On-device testing
+showed this reliably garbles the result (`"Satyam kumarangnyou doing."`
+from writing more content next to an already-converted "Satyam Kumar
+Singh") rather than cleanly extending it. This lines up with Apple's
+own documented guidance on `PKStrokeRecognizer` being limited to
+"throttle your calls," with nothing about feeding it a recombined or
+regrown stroke set reliably across separate recognition passes.
+Reverted: `HandwritingWorkflowService.process` stays a stateless
+`(drawing, shapeSnappedStrokeIDs, style) -> [RecognizedTextObject]`,
+and every debounce firing recognizes whatever unconverted ink currently
+exists as independent line groups, same as the original design. New
+writing near existing text becomes its own cleanly-recognized text
+object rather than being fused into the old one's data — it still sits
+on the same row visually, since it's positioned where it was actually
+written.
+
+### Selecting and moving converted text
+
+`RecognizedTextLabel` gets a `UIPanGestureRecognizer` alongside its tap
+recognizer, disabled by default so an unselected label never competes
+with the page's own finger-pan-to-scroll gesture. `selectTextObject`
+enables it; `deselectTextObject` disables it again. While enabled, a
+finger drag repositions the label (and its delete button) live and
+commits the new origin back into `RecognizedTextObject.boundingBox` via
+`RecognizedTextStore.update(_:)` once the gesture ends — the same
+select-then-manipulate shape the shape-selection overlay (Phase 7)
+already established for snapped shapes.
+
+### Defaults: Noteworthy Bold and dotted pages
+
+`TextStyle.default` is `.noteworthy` at `.bold` (Noteworthy has no
+regular weight — only Light and Bold ship on-device), and new
+notebooks default to `PageStyle.dotted`, both changed from this
+project's original Chalkboard SE / blank defaults per direct product
+preference rather than a bug fix.

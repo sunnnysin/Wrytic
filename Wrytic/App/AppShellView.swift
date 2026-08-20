@@ -17,6 +17,7 @@ enum SidebarDestination: String, CaseIterable, Identifiable {
 struct AppShellView: View {
     @State private var store = NotebookStore()
     @State private var fontSettings = FontSettingsStore()
+    @State private var recognitionSettings = RecognitionSettingsStore()
     @State private var selection: SidebarDestination? = .home
 
     var body: some View {
@@ -37,9 +38,9 @@ struct AppShellView: View {
         } detail: {
             switch selection {
             case .settings:
-                SettingsView(fontSettings: fontSettings)
+                SettingsView(fontSettings: fontSettings, recognitionSettings: recognitionSettings)
             default:
-                HomeView(store: store)
+                HomeView(store: store, fontSettings: fontSettings, recognitionSettings: recognitionSettings)
             }
         }
     }

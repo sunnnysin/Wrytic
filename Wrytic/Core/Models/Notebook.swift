@@ -6,7 +6,7 @@ struct Notebook: Identifiable, Hashable {
     var createdAt: Date
     var pageStyle: PageStyle
 
-    init(id: UUID = UUID(), name: String, createdAt: Date = .now, pageStyle: PageStyle = .blank) {
+    init(id: UUID = UUID(), name: String, createdAt: Date = .now, pageStyle: PageStyle = .dotted) {
         self.id = id
         self.name = name
         self.createdAt = createdAt

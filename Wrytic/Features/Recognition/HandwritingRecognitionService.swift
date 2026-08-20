@@ -1,6 +1,6 @@
 import PencilKit
 
-protocol HandwritingRecognitionService {
+protocol HandwritingRecognitionService: Sendable {
     func updateDrawing(_ drawing: PKDrawing) async
     func recognizedText(strokeIDs: Set<UUID>?) async -> String?
 }

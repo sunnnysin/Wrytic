@@ -1,5 +1,6 @@
 import Testing
 import SwiftUI
+import UIKit
 @testable import Wrytic
 
 struct FontAvailabilityServiceTests {
@@ -58,5 +59,16 @@ struct FontAvailabilityServiceTests {
 
         #expect(unavailable.isAvailable(.chalkboardSE, weight: .regular) == false)
         #expect(unavailable.resolvedFont(for: .chalkboardSE, weight: .regular, size: 20) == .system(size: 20))
+    }
+
+    @Test func resolvedUIFontMatchesRequestedPostscriptName() {
+        let uiFont = service.resolvedUIFont(for: .chalkboardSE, weight: .bold, size: 20)
+        #expect(uiFont.fontName == "ChalkboardSE-Bold")
+    }
+
+    @Test func resolvedUIFontFallsBackToSystemWhenFamilyUnavailable() {
+        let unavailable = SystemFontAvailabilityService(fontExists: { _ in false })
+        let uiFont = unavailable.resolvedUIFont(for: .chalkboardSE, weight: .regular, size: 20)
+        #expect(uiFont == UIFont.systemFont(ofSize: 20, weight: .regular))
     }
 }
