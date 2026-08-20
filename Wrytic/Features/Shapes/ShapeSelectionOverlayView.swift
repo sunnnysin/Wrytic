@@ -20,7 +20,11 @@ final class ShapeSelectionOverlayView: UIView {
 
     init() {
         super.init(frame: .zero)
-        isUserInteractionEnabled = false
+        // No isUserInteractionEnabled = false here: UIView's default
+        // hitTest exits immediately when a view has interaction disabled,
+        // before it ever checks subviews - that would make moveRegion and
+        // resizeHandle unreachable too, not just the parts of this view
+        // with no interactive subview of their own.
 
         outlineLayer.strokeColor = Self.outlineColor.cgColor
         outlineLayer.fillColor = UIColor.clear.cgColor
