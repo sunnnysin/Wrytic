@@ -52,16 +52,25 @@ final class ShapeSelectionOverlayView: UIView {
     }
 
     func update(boundingBox: CGRect) {
-        frame = boundingBox
-        moveRegion.frame = bounds
+        // The handle is centered on the shape's corner, so half of it sits
+        // outside boundingBox. UIView's default hitTest rejects a touch
+        // outside its own bounds before it ever looks at subviews, so
+        // without this padding only the inner half of the handle - and
+        // none of its visually obvious outer half - could actually be
+        // grabbed.
+        let padding = Self.handleDiameter / 2
+        frame = boundingBox.insetBy(dx: -padding, dy: -padding)
+        let innerRect = CGRect(x: padding, y: padding, width: boundingBox.width, height: boundingBox.height)
+
+        moveRegion.frame = innerRect
         resizeHandle.frame = CGRect(
-            x: bounds.maxX - Self.handleDiameter / 2,
-            y: bounds.maxY - Self.handleDiameter / 2,
+            x: innerRect.maxX - Self.handleDiameter / 2,
+            y: innerRect.maxY - Self.handleDiameter / 2,
             width: Self.handleDiameter,
             height: Self.handleDiameter
         )
         outlineLayer.frame = bounds
-        outlineLayer.path = UIBezierPath(rect: bounds).cgPath
+        outlineLayer.path = UIBezierPath(rect: innerRect).cgPath
     }
 
     @objc private func handleMove(_ gesture: UIPanGestureRecognizer) {
