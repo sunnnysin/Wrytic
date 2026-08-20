@@ -33,4 +33,9 @@ struct StrokeToolTests {
         let stroke = makeStroke(inkType: .pencil)
         #expect(StrokeTool.from(stroke) == .pen)
     }
+
+    @Test func shapeSnappedOverridesInkType() {
+        let stroke = makeStroke(inkType: .pen)
+        #expect(StrokeTool.from(stroke, isShapeSnapped: true) == .shape)
+    }
 }

@@ -144,3 +144,33 @@ separately how shape-snapped strokes are tagged for handwriting
 recognition exclusion (per the build plan, shape-snapped strokes must
 never reach the recognizer), since that persisted tagging model doesn't
 exist yet at this phase.
+
+## Stroke capture: a decoupled model layer over `PKDrawing`, not a duplicate store
+
+Phase 8 adds `CapturedStroke`/`StrokeGroup` (`Core/Models`) and
+`StrokeCaptureService` (`Core/Services`) as the abstraction non-canvas
+code (recognition, positioning, persistence) reads strokes through,
+rather than reaching into `PKDrawing`/`PKStroke` directly. It derives
+data from the live drawing on demand (`PKStroke.renderBounds` for the
+bounding box, `PKStrokePath`'s creation date for the timestamp, point
+locations from the stroke's own path) instead of keeping a second,
+independently-updated copy of stroke geometry — `PKDrawing` stays the
+single source of truth.
+
+This is also where the `.shape` gap noted above gets closed:
+`StrokeTool.from(_:isShapeSnapped:)` now takes an explicit
+shape-snapped flag rather than relying solely on `PKInkType`, since a
+shape-snapped stroke keeps its original ink type after
+`ShapeSnapService` replaces its path — ink type alone can't distinguish
+it from a normal pen stroke. The caller (wired into the canvas
+coordinator in a later phase) is expected to pass the same
+`snappedStrokeIDs` set `PencilCanvasView.Coordinator` already tracks
+internally for shape-selection.
+
+`StrokeCaptureService.group(_:)` clusters captured strokes into lines by
+vertical bounding-box overlap (with a small tolerance for natural
+baseline/height variance), sorted top-to-bottom then left-to-right
+within each line. This is deliberately simple spatial grouping, not
+full line/word segmentation — it exists so Phase 12 (text positioning)
+has a starting structure to build on rather than reinventing grouping
+from scratch, without trying to solve positioning itself here.
