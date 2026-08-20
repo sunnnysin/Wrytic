@@ -39,3 +39,6 @@ GoogleService-Info.plist
 
 # RecognitionSpike is throwaway — keep its own Generated/ out too
 RecognitionSpike/Generated/
+
+# Local-only pre-migration archive of the original repo's PR bodies
+docs/archived-pr-history.md
