@@ -174,3 +174,31 @@ within each line. This is deliberately simple spatial grouping, not
 full line/word segmentation — it exists so Phase 12 (text positioning)
 has a starting structure to build on rather than reinventing grouping
 from scratch, without trying to solve positioning itself here.
+
+## Handwriting recognition: thin actor wrapper over `PKStrokeRecognizer`
+
+Phase 9 wraps `PKStrokeRecognizer` (Section 3 of the build plan) behind
+`HandwritingRecognitionService` (`Features/Recognition`) rather than
+using the SDK type directly wherever recognition is needed — the same
+swappable-backend reasoning the plan calls for.
+`PKStrokeRecognitionService` is a thin actor forwarding to the real
+recognizer 1:1; there's nothing to add on top since the SDK type
+already matches the protocol's shape almost exactly.
+
+Pen-only filtering (never highlighter or shape-snapped strokes) is a
+separate concern from the recognition service itself:
+`PenStrokeFilter.penStrokeIDs(in:)` takes the `[CapturedStroke]` Phase
+8's `StrokeCaptureService` produces and returns just the `.pen`-tagged
+stroke IDs, which get passed into `recognizedText(strokeIDs:)`. Keeping
+this out of the recognition service keeps it a pure wrapper and lets
+the filtering logic be tested without touching `PKStrokeRecognizer` at
+all.
+
+"Preserve original strokes on recognition failure" falls out of the
+service's design rather than needing explicit handling:
+`PKStrokeRecognizer` never mutates the drawing it's given and
+`recognizedText` never throws, only returns `nil` on failure — so as
+long as the caller (Phase 11's wiring) doesn't delete the source
+strokes until it has actual replacement text in hand, nothing is ever
+lost to a failed recognition. Retrying is just calling
+`recognizedText(strokeIDs:)` again; there's no failure state to reset.
