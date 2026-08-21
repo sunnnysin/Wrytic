@@ -135,10 +135,15 @@ struct PencilCanvasView: UIViewRepresentable {
         /// isApplyingSelectionUpdate above.
         var isApplyingRecognitionUpdate = false
         var textViewsByID: [UUID: UITextView] = [:]
-        var deleteButtonsByID: [UUID: UIButton] = [:]
-        var fontButtonsByID: [UUID: UIButton] = [:]
         var selectedTextObjectID: UUID?
-        var editingTextObjectID: UUID?
+        var toolbarOwnerID: UUID?
+        var toolbarHostingController: UIHostingController<TextObjectToolbar>?
+        /// A word/range selected via double-tap or hold — while set, the
+        /// *next* handwriting recognized anywhere on the page replaces
+        /// this range instead of becoming a new text object (see
+        /// `applyRecognizedText`). One-shot: cleared the moment it's used
+        /// or the selection is cleared some other way.
+        var activeWordSelection: (id: UUID, range: NSRange)?
 
         init(
             fontSettings: FontSettingsStore,
@@ -292,12 +297,19 @@ struct PencilCanvasView: UIViewRepresentable {
             if let overlay = selectionOverlay, overlay.frame.insetBy(dx: -8, dy: -8).contains(location) {
                 return
             }
+            // The toolbar and replace box live directly on the screen's
+            // root view, above pageContainer in z-order — a tap on either
+            // is hit-tested to them first and never reaches this gesture
+            // recognizer at all, so no explicit exclusion check is needed
+            // for them here (unlike the text view itself, which is a
+            // pageContainer subview at the same level this gesture runs on).
             if let selectedTextObjectID, let textView = textViewsByID[selectedTextObjectID],
                textView.frame.insetBy(dx: -8, dy: -8).contains(location) {
                 return
             }
             deselect()
             deselectTextObject()
+            clearActiveWordSelection()
         }
 
         private func deselect() {

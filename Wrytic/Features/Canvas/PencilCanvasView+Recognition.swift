@@ -53,6 +53,22 @@ extension PencilCanvasView.Coordinator {
         canvasView.drawing = PKDrawing(strokes: remaining)
         isApplyingRecognitionUpdate = false
 
+        // A word/range selected via double-tap or hold turns the *next*
+        // handwriting recognized anywhere on the page into a replacement
+        // for that selection instead of a new, separate text object —
+        // one-shot, so it's cleared immediately once used here.
+        if let selection = activeWordSelection {
+            activeWordSelection = nil
+            if let existing = textStore.textObjects.first(where: { $0.id == selection.id }) {
+                if let updated = TextEditCommit.replacing(range: selection.range, in: existing, with: object.text) {
+                    applyTextReplacement(updated, id: selection.id)
+                } else {
+                    deleteTextObject(id: selection.id)
+                }
+            }
+            return
+        }
+
         textStore.add(object)
         addTextOverlay(for: object)
     }
@@ -60,32 +76,58 @@ extension PencilCanvasView.Coordinator {
     func addTextOverlay(for object: RecognizedTextObject) {
         guard let pageContainer else { return }
         let textView = RecognizedTextView()
-        textView.text = object.text
-        textView.font = availabilityService.resolvedUIFont(
-            for: object.style.font,
-            weight: object.style.weight,
-            size: object.style.size
-        )
+        textView.attributedText = AttributedTextRenderer.render(object, using: availabilityService)
         textView.backgroundColor = .clear
         textView.isScrollEnabled = false
         textView.isEditable = false
+        // Off at rest and while whole-object selected (see selectTextObject)
+        // — only turned on for the brief window a word/range selection is
+        // actually active (see beginWordSelection). Leaving it on all the
+        // time let UITextView's own native hold-to-select-and-drag gesture
+        // compete with — and reliably beat — the custom pan gesture used
+        // for whole-object move, which is why word selection here is
+        // driven by our own tap/long-press gestures (WordBoundaryFinder)
+        // rather than UITextView's built-in double-tap-to-select-word.
         textView.isSelectable = false
         textView.textContainerInset = .zero
         textView.textContainer.lineFragmentPadding = 0
         textView.isUserInteractionEnabled = true
         textView.delegate = self
+        // UITextView inherits UIScrollView's own pan gesture for content
+        // scrolling — harmless while isScrollEnabled is false, but it still
+        // competes with `handleTextPan` below for the same touches and was
+        // silently swallowing whole-object drag-to-move. Disabling it here
+        // (once, unconditionally — scrolling is never used) is what actually
+        // fixes drag, not anything about selection state.
+        textView.panGestureRecognizer.isEnabled = false
         sizeTextView(textView, for: object)
 
-        // Only active once selected (see selectTextObject) — otherwise a
-        // finger drag anywhere on the text view would fight the page's own
+        // Only active once selected via a single tap — otherwise a finger
+        // drag anywhere on the text view would fight the page's own
         // finger-pan-to-scroll gesture before the user ever asked to move it.
         let pan = UIPanGestureRecognizer(target: self, action: #selector(handleTextPan(_:)))
         pan.isEnabled = false
         textView.addGestureRecognizer(pan)
-        // Disabled once editing begins, so UITextView's own tap-to-place-
-        // cursor handles subsequent taps instead of fighting this one.
+
+        // Fires immediately on tap-up, no delay — deliberately *not*
+        // `require(toFail:)`'d against the double-tap/long-press gestures
+        // below. That would only recognize once the double-tap window
+        // timed out, and a real single-tap-then-immediately-drag (the
+        // normal way to select-then-move something) would start dragging
+        // before this gesture had even resolved, losing the touch to
+        // whichever gesture wins that race — which is exactly what made
+        // move unreliable before. The one accepted tradeoff: the first tap
+        // of a genuine double-tap also fires this for an instant before
+        // the word-select gestures below take over and supersede it.
         let tap = UITapGestureRecognizer(target: self, action: #selector(handleTextTap(_:)))
         textView.addGestureRecognizer(tap)
+
+        let doubleTap = UITapGestureRecognizer(target: self, action: #selector(handleWordSelectGesture(_:)))
+        doubleTap.numberOfTapsRequired = 2
+        textView.addGestureRecognizer(doubleTap)
+
+        let longPress = UILongPressGestureRecognizer(target: self, action: #selector(handleWordSelectGesture(_:)))
+        textView.addGestureRecognizer(longPress)
 
         pageContainer.addSubview(textView)
         textViewsByID[object.id] = textView
@@ -112,12 +154,12 @@ extension PencilCanvasView.Coordinator {
         )
     }
 
-    /// Used after an edit or a font/size change, where the text view
+    /// Used after a replace or a font/size change, where the text view
     /// already has a real on-page position — re-derives only the size
     /// needed for the (possibly now different) text, keeping the existing
     /// horizontal origin and vertical center rather than re-anchoring to
     /// the original handwriting geometry.
-    private func resizeToFitCurrentText(_ textView: UITextView) {
+    func resizeToFitCurrentText(_ textView: UITextView) {
         let unconstrained = CGSize(width: CGFloat.greatestFiniteMagnitude, height: CGFloat.greatestFiniteMagnitude)
         let natural = textView.sizeThatFits(unconstrained)
         let height = max(natural.height, textView.frame.height)
@@ -126,7 +168,7 @@ extension PencilCanvasView.Coordinator {
         textView.frame = CGRect(x: minX, y: midY - height / 2, width: natural.width, height: height)
     }
 
-    private func syncBoundingBox(for id: UUID, frame: CGRect) {
+    func syncBoundingBox(for id: UUID, frame: CGRect) {
         guard var object = textStore.textObjects.first(where: { $0.id == id }) else { return }
         object.boundingBox = frame
         textStore.update(object)
@@ -135,136 +177,91 @@ extension PencilCanvasView.Coordinator {
     /// Finger taps on a text view are unaffected by canvasView's `.pencilOnly`
     /// drawing policy — that policy only governs which touches canvasView
     /// itself treats as ink, not what a sibling view's own gesture
-    /// recognizer receives. Erasing converted text with the Pencil eraser
-    /// tool was tried first and dropped: PKCanvasView claims Pencil touches
-    /// for its own internal stroke handling, and a competing gesture
-    /// recognizer fighting it for the same touches is exactly the kind of
-    /// conflict PencilKit apps are documented to avoid.
+    /// recognizer receives.
     @objc func handleTextTap(_ gesture: UITapGestureRecognizer) {
         guard let textView = gesture.view as? UITextView,
               let id = textViewsByID.first(where: { $0.value === textView })?.key else { return }
-        if selectedTextObjectID == id {
-            beginEditingTextObject(id: id)
-        } else {
-            selectTextObject(id: id)
-        }
+        selectTextObject(id: id)
     }
 
+    /// A single tap selects the *whole* object — blue border, draggable —
+    /// distinct from double-tap/hold (`handleWordSelectGesture`), which
+    /// select just a word/range instead.
     func selectTextObject(id: UUID) {
         deselectTextObject()
+        clearActiveWordSelection()
         guard let textView = textViewsByID[id], let pageContainer else { return }
         selectedTextObjectID = id
         textView.layer.borderColor = UIColor.systemBlue.cgColor
         textView.layer.borderWidth = 1.5
         textView.layer.cornerRadius = 4
         panGesture(on: textView)?.isEnabled = true
-
-        let deleteButton = UIButton(type: .system)
-        deleteButton.setImage(UIImage(systemName: "xmark.circle.fill"), for: .normal)
-        deleteButton.tintColor = .systemRed
-        deleteButton.backgroundColor = .systemBackground
-        deleteButton.layer.cornerRadius = 11
-        deleteButton.addTarget(self, action: #selector(handleDeleteButtonTap(_:)), for: .touchUpInside)
-        pageContainer.addSubview(deleteButton)
-        deleteButtonsByID[id] = deleteButton
-
-        let fontButton = UIButton(type: .system)
-        fontButton.setImage(UIImage(systemName: "textformat"), for: .normal)
-        fontButton.tintColor = .label
-        fontButton.backgroundColor = .systemBackground
-        fontButton.layer.cornerRadius = 11
-        fontButton.addTarget(self, action: #selector(handleFontButtonTap(_:)), for: .touchUpInside)
-        pageContainer.addSubview(fontButton)
-        fontButtonsByID[id] = fontButton
-
-        repositionOverlayButtons(for: id)
+        showToolbar(for: id, replaceRange: nil, in: pageContainer)
     }
 
     func deselectTextObject() {
         guard let id = selectedTextObjectID else { return }
         if let textView = textViewsByID[id] {
-            if textView.isFirstResponder {
-                textView.resignFirstResponder()
-            }
             textView.layer.borderWidth = 0
             panGesture(on: textView)?.isEnabled = false
         }
-        deleteButtonsByID[id]?.removeFromSuperview()
-        deleteButtonsByID.removeValue(forKey: id)
-        fontButtonsByID[id]?.removeFromSuperview()
-        fontButtonsByID.removeValue(forKey: id)
         selectedTextObjectID = nil
+        hideToolbarIfOwned(by: id)
     }
 
-    func beginEditingTextObject(id: UUID) {
-        guard let textView = textViewsByID[id] else { return }
-        editingTextObjectID = id
-        panGesture(on: textView)?.isEnabled = false
-        tapGesture(on: textView)?.isEnabled = false
-        textView.isEditable = true
+    /// Called when tapping outside all text objects — clears whichever
+    /// object currently has a word/range selection active (there's at
+    /// most one at a time), since that selection has its own visual
+    /// highlight independent of `selectedTextObjectID`.
+    func clearActiveWordSelection() {
+        activeWordSelection = nil
+        for (id, textView) in textViewsByID where textView.selectedRange.length > 0 {
+            textView.selectedRange = NSRange(location: 0, length: 0)
+            if textView.isFirstResponder {
+                textView.resignFirstResponder()
+            }
+            textView.isSelectable = false
+            hideToolbarIfOwned(by: id)
+        }
+    }
+
+    /// Double-tap or hold-to-select a word, driven by our own gestures and
+    /// `WordBoundaryFinder` rather than UITextView's built-in word-select —
+    /// see the comment on `isSelectable` in `addTextOverlay` for why.
+    /// `isSelectable` is turned on only for this selection's lifetime, so
+    /// its own native selection handles (drag left/right to extend across
+    /// more words) and Copy/Look Up menu still work exactly as they would
+    /// natively — this only replaces *how* the initial word gets picked.
+    @objc func handleWordSelectGesture(_ gesture: UIGestureRecognizer) {
+        if let longPress = gesture as? UILongPressGestureRecognizer, longPress.state != .began { return }
+        guard let textView = gesture.view as? UITextView,
+              let id = textViewsByID.first(where: { $0.value === textView })?.key else { return }
+
+        let point = gesture.location(in: textView)
+        guard let position = textView.closestPosition(to: point) else { return }
+        let offset = textView.offset(from: textView.beginningOfDocument, to: position)
+        guard let wordRange = WordBoundaryFinder.wordRange(in: textView.text, at: offset) else { return }
+
+        deselectTextObject()
         textView.isSelectable = true
+        textView.selectedRange = wordRange
         textView.becomeFirstResponder()
     }
 
-    func textViewDidEndEditing(_ textView: UITextView) {
-        guard let id = textViewsByID.first(where: { $0.value === textView })?.key else { return }
-        editingTextObjectID = nil
-        textView.isEditable = false
-        textView.isSelectable = false
-        tapGesture(on: textView)?.isEnabled = true
-        if selectedTextObjectID == id {
-            panGesture(on: textView)?.isEnabled = true
-        }
+    /// Fires for both the initial word selection above and for the user
+    /// dragging its native handles to extend the selection across more
+    /// words — either way, keeps the toolbar's target range current.
+    func textViewDidChangeSelection(_ textView: UITextView) {
+        guard let id = textViewsByID.first(where: { $0.value === textView })?.key,
+              let pageContainer else { return }
 
-        guard let object = textStore.textObjects.first(where: { $0.id == id }) else { return }
-        guard let updated = TextEditCommit.apply(editedText: textView.text, to: object) else {
-            deleteTextObject(id: id)
+        guard textView.selectedRange.length > 0 else {
+            activeWordSelection = nil
+            hideToolbarIfOwned(by: id)
             return
         }
-        textStore.update(updated)
-        textView.text = updated.text
-        resizeToFitCurrentText(textView)
-        syncBoundingBox(for: id, frame: textView.frame)
-        repositionOverlayButtons(for: id)
-    }
-
-    @objc func handleDeleteButtonTap(_ sender: UIButton) {
-        guard let id = deleteButtonsByID.first(where: { $0.value === sender })?.key else { return }
-        deleteTextObject(id: id)
-    }
-
-    @objc func handleFontButtonTap(_ sender: UIButton) {
-        guard let id = fontButtonsByID.first(where: { $0.value === sender })?.key else { return }
-        presentFontPicker(for: id, anchoredTo: sender)
-    }
-
-    private func presentFontPicker(for id: UUID, anchoredTo anchorView: UIView) {
-        guard let hostViewController = anchorView.parentViewController else { return }
-        let binding = Binding<TextStyle>(
-            get: { [weak self] in
-                self?.textStore.textObjects.first(where: { $0.id == id })?.style ?? .default
-            },
-            set: { [weak self] newStyle in
-                self?.applyStyleChange(newStyle, to: id)
-            }
-        )
-        let picker = UIHostingController(rootView: NavigationStack { FontPickerView(style: binding) })
-        picker.modalPresentationStyle = .popover
-        picker.preferredContentSize = CGSize(width: 320, height: 420)
-        picker.popoverPresentationController?.sourceView = anchorView
-        picker.popoverPresentationController?.sourceRect = anchorView.bounds
-        hostViewController.present(picker, animated: true)
-    }
-
-    private func applyStyleChange(_ style: TextStyle, to id: UUID) {
-        guard var object = textStore.textObjects.first(where: { $0.id == id }),
-              let textView = textViewsByID[id] else { return }
-        object.style = style
-        textStore.update(object)
-        textView.font = availabilityService.resolvedUIFont(for: style.font, weight: style.weight, size: style.size)
-        resizeToFitCurrentText(textView)
-        syncBoundingBox(for: id, frame: textView.frame)
-        repositionOverlayButtons(for: id)
+        activeWordSelection = (id: id, range: textView.selectedRange)
+        showToolbar(for: id, replaceRange: textView.selectedRange, in: pageContainer)
     }
 
     @objc func handleTextPan(_ gesture: UIPanGestureRecognizer) {
@@ -276,7 +273,6 @@ extension PencilCanvasView.Coordinator {
         textView.frame.origin.x += translation.x
         textView.frame.origin.y += translation.y
         gesture.setTranslation(.zero, in: pageContainer)
-        repositionOverlayButtons(for: id)
 
         guard gesture.state == .ended || gesture.state == .cancelled,
               var object = textStore.textObjects.first(where: { $0.id == id }) else { return }
@@ -284,26 +280,22 @@ extension PencilCanvasView.Coordinator {
         textStore.update(object)
     }
 
-    private func panGesture(on textView: UITextView) -> UIPanGestureRecognizer? {
-        textView.gestureRecognizers?.compactMap { $0 as? UIPanGestureRecognizer }.first
-    }
-
-    private func tapGesture(on textView: UITextView) -> UITapGestureRecognizer? {
-        textView.gestureRecognizers?.compactMap { $0 as? UITapGestureRecognizer }.first
-    }
-
-    private func repositionOverlayButtons(for id: UUID) {
-        guard let textView = textViewsByID[id] else { return }
-        if let deleteButton = deleteButtonsByID[id] {
-            deleteButton.frame = CGRect(x: textView.frame.maxX - 11, y: textView.frame.minY - 11, width: 22, height: 22)
-        }
-        if let fontButton = fontButtonsByID[id] {
-            fontButton.frame = CGRect(x: textView.frame.maxX - 33, y: textView.frame.minY - 11, width: 22, height: 22)
-        }
+    /// `UITextView` is a `UIScrollView` subclass and already carries its
+    /// own built-in `panGestureRecognizer` for scrolling — present in
+    /// `gestureRecognizers` (just disabled) alongside the custom one added
+    /// in `addTextOverlay`. Picking `.first` without excluding it was
+    /// finding *that* one, so every enable/disable call here was toggling
+    /// the wrong gesture and the real move gesture never actually turned
+    /// on — the actual reason drag-to-move silently never worked.
+    func panGesture(on textView: UITextView) -> UIPanGestureRecognizer? {
+        textView.gestureRecognizers?
+            .compactMap { $0 as? UIPanGestureRecognizer }
+            .first { $0 !== textView.panGestureRecognizer }
     }
 
     func deleteTextObject(id: UUID) {
         deselectTextObject()
+        hideToolbarIfOwned(by: id)
         textViewsByID[id]?.removeFromSuperview()
         textViewsByID.removeValue(forKey: id)
         textStore.remove(id: id)
@@ -317,8 +309,7 @@ extension PencilCanvasView.Coordinator {
 /// what `canvasView` itself treats as ink; it has no effect on a sibling
 /// view's hit-testing. Letting Pencil touches fall through here restores
 /// normal drawing while finger taps still reach the text view for select/
-/// edit, and (once editing) native cursor placement, selection, and copy/
-/// paste all come from UITextView itself rather than being rebuilt by hand.
+/// word-select, and native selection brings Copy along for free.
 final class RecognizedTextView: UITextView {
     override func hitTest(_ point: CGPoint, with event: UIEvent?) -> UIView? {
         if event?.allTouches?.contains(where: { $0.type == .pencil }) == true {

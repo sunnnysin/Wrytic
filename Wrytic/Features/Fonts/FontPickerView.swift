@@ -32,9 +32,39 @@ struct FontPickerView: View {
                     .foregroundStyle(.secondary)
             }
 
+            Section("Color") {
+                HStack(spacing: 12) {
+                    ForEach(Array(TextColor.presets.enumerated()), id: \.offset) { _, color in
+                        Button {
+                            style.color = color
+                        } label: {
+                            Circle()
+                                .fill(color.swiftUIColor)
+                                .frame(width: 28, height: 28)
+                                .overlay(
+                                    Circle()
+                                        .stroke(.primary, lineWidth: style.color == color ? 2 : 0)
+                                        .padding(-3)
+                                )
+                        }
+                        .buttonStyle(.plain)
+                    }
+
+                    ColorPicker(
+                        "Custom",
+                        selection: Binding(
+                            get: { style.color.swiftUIColor },
+                            set: { style.color = TextColor(color: $0) }
+                        )
+                    )
+                    .labelsHidden()
+                }
+            }
+
             Section("Preview") {
                 Text("The quick brown fox")
                     .font(availabilityService.resolvedFont(for: style.font, weight: style.weight, size: style.size))
+                    .foregroundStyle(style.color.swiftUIColor)
             }
         }
         .navigationTitle("Font")
