@@ -80,20 +80,21 @@ extension PencilCanvasView.Coordinator {
         textLabelsByID[object.id] = label
     }
 
-    /// The label's frame is derived from the font size, not the raw
-    /// handwriting stroke union — the stroke union is often looser than
-    /// the glyphs it becomes, and using it directly as the label's
-    /// hit-testable frame blocks Pencil input well past where the text
-    /// actually sits. A fixed height a bit taller than the font's own
-    /// size — rather than `sizeToFit`'s tight box — keeps ascenders and
-    /// descenders from clipping regardless of the font's own metrics,
-    /// with `RecognizedTextLabel` centering the glyphs inside it.
+    /// `object.boundingBox` (from `TextPositioningService`) supplies the
+    /// horizontal origin and the vertical *center* — not anchoring to the
+    /// raw stroke union, which is often looser than the glyphs it becomes
+    /// and would block Pencil input well past where the text actually
+    /// sits. Its height is only an estimate, though, and was found too
+    /// tight for real font metrics (Noteworthy Bold's `g`/`y` descenders
+    /// clipped at the bottom on-device) — `label.sizeToFit()` already
+    /// computes the actual height that font needs, so the taller of the
+    /// two wins, keeping the same vertical center either way.
     private func sizeLabel(_ label: UILabel, for object: RecognizedTextObject) {
         label.sizeToFit()
-        let height = ceil(object.style.size * 1.25)
+        let height = max(object.boundingBox.height, label.frame.height)
         label.frame = CGRect(
             x: object.boundingBox.origin.x,
-            y: object.boundingBox.origin.y,
+            y: object.boundingBox.midY - height / 2,
             width: label.frame.width,
             height: height
         )

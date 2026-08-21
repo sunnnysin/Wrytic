@@ -488,6 +488,31 @@ commits the new origin back into `RecognizedTextObject.boundingBox` via
 select-then-manipulate shape the shape-selection overlay (Phase 7)
 already established for snapped shapes.
 
+### Text positioning: center-anchored placement, no size auto-scaling
+
+Phase 11 anchored every converted line at its source strokes' bounding-box
+top-left corner. `TextPositioningService` (`HandwritingTextPositioningService`)
+now anchors the label frame by vertical center on the source strokes'
+bounding box instead — handwriting's own ascenders/descenders extend
+past a glyph's visual center, so centering tracks the written line's
+position more consistently than anchoring to its raw top. Horizontal
+origin stays exactly the strokes' `minX`, unchanged from Phase 11.
+
+Tried and reverted: scaling the rendered `TextStyle.size` off each
+group's stroke-bounding-box height, so bigger handwriting rendered as
+bigger text. Direct product feedback after trying it on-device: the same
+font-size setting producing visibly different rendered sizes depending
+on how big a given line happened to be written reads as inconsistent,
+not as "positioning" — rendered size should track the user's chosen
+font setting only. `HandwritingTextPositioningService` always returns
+`baseStyle` unchanged; only placement (the frame's origin) adapts.
+
+`AutoRecognitionWorkflow` calls this per group before building each
+`RecognizedTextObject`; `PencilCanvasView+Recognition`'s `sizeLabel` now
+just applies the already-computed `boundingBox` instead of re-deriving a
+height from `style.size` itself, so there's one source of truth for a
+converted line's frame.
+
 ### Defaults: Noteworthy Bold and dotted pages
 
 `TextStyle.default` is `.noteworthy` at `.bold` (Noteworthy has no
