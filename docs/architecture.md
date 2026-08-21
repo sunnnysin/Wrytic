@@ -597,3 +597,202 @@ regular weight — only Light and Bold ship on-device), and new
 notebooks default to `PageStyle.dotted`, both changed from this
 project's original Chalkboard SE / blank defaults per direct product
 preference rather than a bug fix.
+
+## Phase 14: image insertion, and drawing ink actually on top of an image
+
+`ImageObject` (`Core/Models/`) + `ImageObjectStore` (`Core/Services/`)
+follow the exact `RecognizedTextObject`/`RecognizedTextStore` precedent
+from Phase 13 rather than inventing a shared "canvas item" abstraction —
+strokes, shapes, text, and now images remain four separate, parallel
+mechanisms in this codebase, not variants of one sum type; unifying them
+would be a bigger architectural change than any single phase has called
+for. `ImageGeometry` (`Features/Images/`) is a plain, UIKit-free
+`CGRect`-based struct mirroring `ShapeFit+Geometry`'s pure translate/
+resize math, kept separately unit-testable the same way.
+
+**The key design fork, and why images sit *below* `canvasView` while
+converted text sits *above* it:** `RecognizedTextView` (Phase 13) solves
+"let the Pencil draw near/under converted text" by sitting above
+`canvasView` and passing Pencil touches through in `hitTest` — but that
+means ink drawn "through" a text view's frame is actually landing on
+`canvasView`, which is *behind* the text, i.e. ink renders underneath
+the glyphs, not over them. That's fine for text (nobody expects to draw
+literally on top of letters), but Phase 14 explicitly requires ink to be
+visually paintable *on top of* an inserted image. Doing that with the
+text-view trick would need the opposite of a passthrough — compositing
+canvasView's ink above a view that's already above canvasView, which
+isn't how UIKit layering works.
+
+The fix: `ImageObjectView`'s image sits **below** `canvasView` in
+`pageContainer` (`pageContainer.insertSubview(imageView,
+belowSubview: canvasView)`), not above it like text. `canvasView` is
+already transparent and already the frontmost content layer, so ink
+composites on top of the image for free — no hit-test passthrough
+needed for drawing at all. The tradeoff this creates: the image view can
+never receive touches directly, since `canvasView` sits above it and is
+hit-tested first for anything in that region. Tap-to-select is resolved
+by frame-checking against `imageStore.imageObjects` inside the existing
+shared `handleDeselectTap` gesture on `pageContainer` (which already
+receives every tap regardless of what's hit-tested beneath it, the same
+way it already excludes the shape/text selection chrome), rather than by
+a gesture recognizer on the image view itself. Move and resize, once
+selected, reuse `ShapeSelectionOverlayView` completely as-is (a second,
+independently-owned instance) — it was already pure geometry/gesture
+chrome with no shape-specific logic, driven entirely through its
+`onMove`/`onResize`/`onGestureEnded` closures against a `boundingBox`,
+which is exactly what an image's frame is too. That overlay is added as
+a `pageContainer` subview only while an image is selected, so it's
+naturally topmost and receives finger drags normally.
+
+Resize is aspect-ratio-locked (`ImageGeometry.resized`) — a free-form
+drag-to-resize, the model `ShapeFit+Geometry` uses for rectangles/
+ellipses, would silently distort photos, which a plain corner handle
+doesn't visually warn against.
+
+**Deliberately not attempted:** making ink strokes drawn over an image
+move together with it when the image itself is dragged. There's no
+precedent for "moving one visual thing drags unrelated ink with it"
+anywhere in this codebase (dragging a selected shape or text object
+never carries along nearby ink either), and building stroke-to-image
+attachment tracking would be new, unscoped machinery. "Ink stays
+visually and positionally associated with the image" is satisfied by
+both living in the same `pageContainer` coordinate space (so panning/
+zooming the page moves them together, automatically) and by ink
+compositing visually on top per the above — not by ink following the
+image around when the image alone is repositioned.
+
+Insertion uses `PhotosPicker` (PhotosUI, SwiftUI-native) for the photo
+library and `.fileImporter` for Files — both run out-of-process and
+need no `NSPhotoLibraryUsageDescription` entry, unlike the older
+`PHPickerViewController`/direct `PHAsset` access this could otherwise
+have required.
+
+A `PhotosPicker` placed directly as `Menu` content doesn't reliably
+present on tap — `Menu` items are expected to be simple actions, and
+`PhotosPicker`'s own presentation logic doesn't fire through that. Fixed
+by driving it from a plain `Button` inside the menu that flips an
+`isPresentingPhotosPicker` boolean, with `.photosPicker(isPresented:)`
+attached to the screen itself (`CanvasScreen.swift`) rather than nested
+inside the menu.
+
+## Shape selection: tap-to-deselect, and the bounding-box vs. geometry vs. re-entrancy bug
+
+A shape (line/rectangle/ellipse/arrow), once auto-selected on snap,
+sometimes couldn't be deselected by tapping elsewhere on the page —
+tapping repeatedly did nothing. Two distinct, real bugs were involved,
+and fixing only the first (though a genuine improvement) did not
+resolve the reported symptom:
+
+**Bug 1 — bounding box too generous for open shapes.**
+`handleDeselectTap`'s tap-exclusion check compared the tap location
+against the selected shape's full bounding box. For a rectangle or
+ellipse that's fine — the box roughly matches the visible shape. For a
+diagonal line or arrow, though, `ShapeFit.boundingBox` spans the two
+endpoints, which for a long diagonal can cover most of the page even
+though the visible ink is a thin stroke — so nearly any "tap elsewhere"
+still registered as "tapping the shape." Fixed with `ShapeFit.isNear`
+(`ShapeFit+Selection.swift`) and `ShapeGeometry`
+(`ShapeGeometry.swift`): closed shapes (rectangle/ellipse) use
+point-in-polygon against the shape's own outline, open shapes
+(line/arrow) use distance-to-polyline with a small tolerance — both
+generic, driven entirely by `ShapePathBuilder.controlPointLocations`, so
+every current and future `ShapeFit` case gets correct hit-testing with
+no shape-specific math of its own. The resize handle itself is excluded
+via its own small frame (`ShapeSelectionOverlayView
+.resizeHandleFrameInSuperview`), separately from the shape-geometry
+check, since the handle sits outside the shape's visible outline by
+design.
+
+**Bug 2 — the actual dominant cause: a missing re-entrancy guard.**
+Fixing bug 1 did not resolve the user's repeated real-device retesting
+of the exact same symptom, which is what made this a genuine "the fix
+should work but doesn't" case — the same situation the Phase 11 writeup
+above describes, and resolved the same way: on-device `os.Logger`
+diagnostics, not another guess. The logs showed `select()` being called
+repeatedly on its own, with no tap in between. Cause: `attemptSnap`
+writes the freshly-classified stroke into `canvasView.drawing` without
+the `isApplyingSelectionUpdate` guard that every *other* similar write
+in `PencilCanvasView.swift` already uses (`applySelectionUpdate` sets it
+correctly). That unguarded write re-triggers PencilKit's own
+`canvasViewDrawingDidChange` delegate callback, which reschedules
+another snap attempt — this time on the now-mathematically-perfect
+shape, which trivially reclassifies as the same shape again, calls
+`select()` again, and writes the drawing again: an unguarded ~0.4s loop
+that silently re-selected the shape shortly after any deselect tap,
+forever, until something changed the selected stroke's identity out
+from under the pending retry (which is exactly what resizing or drawing
+new ink did — not a real fix, just an accidental way of breaking one
+iteration of the loop). Fixed by wrapping that write in
+`isApplyingSelectionUpdate = true/false` and additionally inserting the
+newly-snapped stroke's own ID into `snapEvaluatedStrokeIDs` (previously
+only the pre-snap original stroke's ID was ever recorded there) as a
+second, defensive guard against re-evaluating an already-snapped shape.
+
+## Shape set expansion: triangle, pentagon, hexagon, star, curved arrow, orthogonal polyline
+
+`ShapeType`/`ShapeFit` grew six new cases on top of the original four
+(line, rectangle, ellipse, arrow), extending the same draw-and-hold
+heuristic approach from `docs/architecture.md`'s original Phase 7 entry
+rather than switching to a different technique. `ShapeClassifier.swift`
+grew large enough to split: `ShapeClassifier+Polygon.swift` (closed
+shapes — triangle/pentagon/hexagon/star, regularity/star-pattern checks,
+corner reduction) and `ShapeClassifier+Arrow.swift` (open shapes —
+straight/curved arrow, orthogonal polyline, flare detection) alongside
+the original `ShapeClassifier.swift` (shared geometry primitives and the
+top-level `classify`/`fit` dispatch). `ShapeFit`'s new closed cases
+(`triangle`, `regularPolygon`, `star`) are plain-geometry structs the
+same way `rectangle`/`ellipse` already were — pentagon and hexagon share
+one `regularPolygon(center:radius:rotation:sides:)` case rather than two
+near-identical ones.
+
+**Two real, non-obvious bugs found while building this, in order:**
+
+1. **A circle can look like a regular polygon.** Douglas-Peucker
+   simplification of a smooth circle/ellipse is itself highly
+   symmetric — at the epsilon this codebase uses, a hand-drawn circle
+   commonly simplifies to a near-perfect octagon, which trivially passes
+   an equal-side/equal-angle "is this regular?" check the same way a
+   genuine hand-drawn hexagon would. Corner count and angle regularity
+   alone can't tell "eight straight polygon edges" apart from "an arc
+   Douglas-Peucker chopped into eight straight segments." The actual
+   discriminator, `ShapeClassifier+Polygon.hasStraightEdges`: check the
+   *raw*, unsimplified points between each pair of detected corners
+   against the straight chord connecting them. A real polygon edge's raw
+   points hug that chord (only hand-wobble noise); a circle's arc
+   systematically bulges away from it. This runs before the regularity/
+   star-pattern check for every pentagon/hexagon/star candidate, and is
+   what actually keeps circles falling through to the ellipse
+   compactness check instead of being claimed by a polygon shape first.
+   A related, narrower issue in the same area: Douglas-Peucker's
+   single-split-per-recursion-level approach can spuriously keep an
+   extra, nearly-colinear point when a symmetric shape has two dominant
+   corners on the same side of a recursive split (most visible on
+   hexagons, which need two corners resolved per recursive half, unlike
+   a rectangle's one) — `ShapeClassifier+Polygon.dominantCorners` prunes
+   back to the expected corner count by repeatedly dropping whichever
+   point is least corner-like (interior angle closest to straight),
+   gated by a deliberately small `candidateCornerOvershoot` tolerance so
+   this pruning can't paper over an actually-wrong corner count.
+
+2. **Curved arrows always reshaped into the same generic bow,
+   regardless of the actual gesture drawn — found from real on-device
+   testing, not caught by synthetic unit tests.** The quadratic Bézier
+   control point was computed by measuring the shaft's maximum deviation
+   from the tail-head chord, then always reconstructing a control point
+   as if that deviation occurred at the exact midpoint (t=0.5) of the
+   curve. A quick real-world curved-arrow gesture very often hooks
+   sharply near one end rather than bowing symmetrically through the
+   middle, so forcing the bend's magnitude onto a fixed midpoint
+   position discarded exactly where the real bend was, and every curve
+   collapsed toward the same shape irrespective of input. Fixed by
+   tracking the actual point of maximum deviation *and* its real
+   fractional position along the tail-head span, then solving the
+   quadratic Bézier control point equation for that real `(point,
+   fraction)` pair instead of assuming `fraction = 0.5`. Also switched
+   arrowhead-flare detection, for curved shafts specifically, from
+   projecting onto the straight tail-head chord (which a curved shaft's
+   own ink deviates from throughout, not just at the arrowhead) to
+   point-density near each candidate endpoint — an arrowhead's flanks
+   pack extra ink into a small area near one end regardless of how the
+   shaft bends to get there, so density is robust to curvature in a way
+   chord-projection isn't.

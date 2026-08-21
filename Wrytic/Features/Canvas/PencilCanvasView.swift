@@ -1,5 +1,9 @@
 import SwiftUI
 import PencilKit
+import UIKit
+import os
+
+private let shapeSnapLog = Logger(subsystem: "com.wrytic.app", category: "shape-snap")
 
 struct PencilCanvasView: UIViewRepresentable {
     @Binding var canvasView: PKCanvasView
@@ -7,6 +11,8 @@ struct PencilCanvasView: UIViewRepresentable {
     var fontSettings: FontSettingsStore
     var recognitionSettings: RecognitionSettingsStore
     var textStore: RecognizedTextStore
+    var imageStore: ImageObjectStore
+    @Binding var pendingImageInsertion: UIImage?
 
     func makeUIView(context: Context) -> PencilCanvasScrollView {
         let scrollView = PencilCanvasScrollView()
@@ -35,6 +41,7 @@ struct PencilCanvasView: UIViewRepresentable {
         scrollView.pageContainer = pageContainer
         context.coordinator.backgroundView = backgroundView
         context.coordinator.pageContainer = pageContainer
+        context.coordinator.canvasViewRef = canvasView
 
         let deselectTap = UITapGestureRecognizer(
             target: context.coordinator,
@@ -54,10 +61,19 @@ struct PencilCanvasView: UIViewRepresentable {
 
     func updateUIView(_ uiView: PencilCanvasScrollView, context: Context) {
         context.coordinator.backgroundView?.style = pageStyle
+        if let image = pendingImageInsertion {
+            context.coordinator.insertImage(image)
+            DispatchQueue.main.async { pendingImageInsertion = nil }
+        }
     }
 
     func makeCoordinator() -> Coordinator {
-        Coordinator(fontSettings: fontSettings, recognitionSettings: recognitionSettings, textStore: textStore)
+        Coordinator(
+            fontSettings: fontSettings,
+            recognitionSettings: recognitionSettings,
+            textStore: textStore,
+            imageStore: imageStore
+        )
     }
 
     final class Coordinator: NSObject, UIScrollViewDelegate, PKCanvasViewDelegate, UITextViewDelegate {
@@ -82,10 +98,15 @@ struct PencilCanvasView: UIViewRepresentable {
         /// stroke, so continuous writing just keeps pushing this out —
         /// only genuine pauses of this length trigger it.
         static let recognitionDebounceDelay: TimeInterval = 3.0
+        /// How close a tap must land to a selected shape's actual visible
+        /// geometry to count as "tapping the shape" rather than "tapping
+        /// elsewhere" for deselect purposes — see `handleDeselectTap`.
+        static let shapeSelectionTapTolerance: CGFloat = 16
 
         let toolPicker = DrawingToolPickerFactory.makeToolPicker()
         var backgroundView: PageStyleBackgroundView?
         weak var pageContainer: UIView?
+        weak var canvasViewRef: PKCanvasView?
         var snappedStrokeIDs: Set<UUID> = []
         /// Every stroke that has already gone through a snap attempt,
         /// regardless of outcome — guards against re-running
@@ -101,18 +122,18 @@ struct PencilCanvasView: UIViewRepresentable {
         private var isToolInUse = false
         private var heldDuringCurrentStroke = false
 
-        private var selectionOverlay: ShapeSelectionOverlayView?
-        private var selectedStrokeID: UUID?
-        private var selectedFit: ShapeFit?
-        private var selectedOriginalStroke: PKStroke?
-        private var selectedOriginalPoints: [PKStrokePoint] = []
-        private var dragStartFit: ShapeFit?
-        private weak var activeCanvasView: PKCanvasView?
+        var selectionOverlay: ShapeSelectionOverlayView?
+        var selectedStrokeID: UUID?
+        var selectedFit: ShapeFit?
+        var selectedOriginalStroke: PKStroke?
+        var selectedOriginalPoints: [PKStrokePoint] = []
+        var dragStartFit: ShapeFit?
+        weak var activeCanvasView: PKCanvasView?
         /// Set while a selection-driven update writes to canvasView.drawing,
         /// so that write's own canvasViewDrawingDidChange callback doesn't
         /// re-enter the auto-snap debounce pipeline and try to reclassify
         /// a shape that's already been fitted.
-        private var isApplyingSelectionUpdate = false
+        var isApplyingSelectionUpdate = false
 
         let fontSettings: FontSettingsStore
         let recognitionSettings: RecognitionSettingsStore
@@ -145,14 +166,22 @@ struct PencilCanvasView: UIViewRepresentable {
         /// or the selection is cleared some other way.
         var activeWordSelection: (id: UUID, range: NSRange)?
 
+        let imageStore: ImageObjectStore
+        var imageViewsByID: [UUID: UIImageView] = [:]
+        var imageSelectionOverlay: ShapeSelectionOverlayView?
+        var selectedImageID: UUID?
+        var dragStartImageFrame: CGRect?
+
         init(
             fontSettings: FontSettingsStore,
             recognitionSettings: RecognitionSettingsStore,
-            textStore: RecognizedTextStore
+            textStore: RecognizedTextStore,
+            imageStore: ImageObjectStore
         ) {
             self.fontSettings = fontSettings
             self.recognitionSettings = recognitionSettings
             self.textStore = textStore
+            self.imageStore = imageStore
         }
 
         func viewForZooming(in scrollView: UIScrollView) -> UIView? {
@@ -222,104 +251,40 @@ struct PencilCanvasView: UIViewRepresentable {
         private func attemptSnap(strokeID: UUID, in canvasView: PKCanvasView) {
             guard let lastStroke = canvasView.drawing.strokes.last, lastStroke.id == strokeID else { return }
 
+            let rawLocations = Array(lastStroke.path).map(\.location)
+            let rawPointCount = rawLocations.count
+            let rawStart = rawLocations.first?.debugDescription ?? "nil"
+            let rawEnd = rawLocations.last?.debugDescription ?? "nil"
             guard let snap = ShapeSnapService.snap(stroke: lastStroke) else {
                 snapEvaluatedStrokeIDs.insert(lastStroke.id)
+                shapeSnapLog.debug("no shape matched, rawPointCount=\(rawPointCount, privacy: .public)")
                 return
             }
+            let fitDescription = String(describing: snap.fit)
+            shapeSnapLog.debug("snapped rawPointCount=\(rawPointCount, privacy: .public)")
+            shapeSnapLog.debug("rawStart=\(rawStart, privacy: .public) rawEnd=\(rawEnd, privacy: .public)")
+            shapeSnapLog.debug("fit=\(fitDescription, privacy: .public)")
 
             snappedStrokeIDs.insert(snap.stroke.id)
+            // Also mark the *snapped* stroke itself as evaluated, not just
+            // the original — the write below produces a mathematically
+            // perfect shape, which would otherwise pass classification
+            // again indefinitely (see isApplyingSelectionUpdate below).
+            snapEvaluatedStrokeIDs.insert(snap.stroke.id)
             var strokes = canvasView.drawing.strokes
             strokes[strokes.count - 1] = snap.stroke
-            canvasView.drawing = PKDrawing(strokes: strokes)
-
-            select(strokeID: snap.stroke.id, fit: snap.fit, originalStroke: lastStroke, in: canvasView)
-        }
-
-        private func select(strokeID: UUID, fit: ShapeFit, originalStroke: PKStroke, in canvasView: PKCanvasView) {
-            guard let pageContainer else { return }
-
-            selectedStrokeID = strokeID
-            selectedFit = fit
-            selectedOriginalStroke = originalStroke
-            selectedOriginalPoints = Array(originalStroke.path)
-            activeCanvasView = canvasView
-
-            let overlay = selectionOverlay ?? makeSelectionOverlay(in: pageContainer)
-            overlay.update(boundingBox: fit.boundingBox)
-        }
-
-        private func makeSelectionOverlay(in pageContainer: UIView) -> ShapeSelectionOverlayView {
-            let overlay = ShapeSelectionOverlayView()
-            overlay.onMove = { [weak self] translation in
-                self?.applySelectionUpdate { fit in fit.translated(by: translation) }
-            }
-            overlay.onResize = { [weak self] newCorner in
-                self?.applySelectionUpdate { fit in fit.resized(draggingCornerTo: newCorner) }
-            }
-            overlay.onGestureEnded = { [weak self] in
-                self?.dragStartFit = nil
-            }
-            pageContainer.addSubview(overlay)
-            selectionOverlay = overlay
-            return overlay
-        }
-
-        private func applySelectionUpdate(_ transform: (ShapeFit) -> ShapeFit) {
-            guard let baseFit = dragStartFit ?? selectedFit,
-                  let canvasView = activeCanvasView,
-                  let strokeID = selectedStrokeID,
-                  let originalStroke = selectedOriginalStroke,
-                  let index = canvasView.drawing.strokes.firstIndex(where: { $0.id == strokeID }) else { return }
-            if dragStartFit == nil { dragStartFit = selectedFit }
-
-            let newFit = transform(baseFit)
-            let newStroke = ShapeSnapService.buildStroke(
-                for: newFit,
-                matching: originalStroke,
-                originalPoints: selectedOriginalPoints
-            )
-
+            // Writing canvasView.drawing here fires canvasViewDrawingDidChange
+            // again, same as any other programmatic write. Without this guard
+            // that re-entrant call rescheduled scheduleSnapIfNeeded on the
+            // now-already-perfect shape, which reclassified successfully,
+            // called select() again, and wrote the drawing again — an
+            // infinite ~0.4s loop that kept silently re-selecting the shape
+            // moments after any deselect tap, making deselect look broken.
             isApplyingSelectionUpdate = true
-            var strokes = canvasView.drawing.strokes
-            strokes[index] = newStroke
             canvasView.drawing = PKDrawing(strokes: strokes)
             isApplyingSelectionUpdate = false
 
-            selectedStrokeID = newStroke.id
-            selectedFit = newFit
-            selectionOverlay?.update(boundingBox: newFit.boundingBox)
-        }
-
-        @objc func handleDeselectTap(_ gesture: UITapGestureRecognizer) {
-            guard let pageContainer else { return }
-            let location = gesture.location(in: pageContainer)
-
-            if let overlay = selectionOverlay, overlay.frame.insetBy(dx: -8, dy: -8).contains(location) {
-                return
-            }
-            // The toolbar and replace box live directly on the screen's
-            // root view, above pageContainer in z-order — a tap on either
-            // is hit-tested to them first and never reaches this gesture
-            // recognizer at all, so no explicit exclusion check is needed
-            // for them here (unlike the text view itself, which is a
-            // pageContainer subview at the same level this gesture runs on).
-            if let selectedTextObjectID, let textView = textViewsByID[selectedTextObjectID],
-               textView.frame.insetBy(dx: -8, dy: -8).contains(location) {
-                return
-            }
-            deselect()
-            deselectTextObject()
-            clearActiveWordSelection()
-        }
-
-        private func deselect() {
-            selectionOverlay?.removeFromSuperview()
-            selectionOverlay = nil
-            selectedStrokeID = nil
-            selectedFit = nil
-            selectedOriginalStroke = nil
-            selectedOriginalPoints = []
-            dragStartFit = nil
+            select(strokeID: snap.stroke.id, fit: snap.fit, originalStroke: lastStroke, in: canvasView)
         }
     }
 }
