@@ -1,5 +1,6 @@
 import SwiftUI
 import PencilKit
+import UIKit
 
 struct PencilCanvasView: UIViewRepresentable {
     @Binding var canvasView: PKCanvasView
@@ -7,6 +8,8 @@ struct PencilCanvasView: UIViewRepresentable {
     var fontSettings: FontSettingsStore
     var recognitionSettings: RecognitionSettingsStore
     var textStore: RecognizedTextStore
+    var imageStore: ImageObjectStore
+    @Binding var pendingImageInsertion: UIImage?
 
     func makeUIView(context: Context) -> PencilCanvasScrollView {
         let scrollView = PencilCanvasScrollView()
@@ -35,6 +38,7 @@ struct PencilCanvasView: UIViewRepresentable {
         scrollView.pageContainer = pageContainer
         context.coordinator.backgroundView = backgroundView
         context.coordinator.pageContainer = pageContainer
+        context.coordinator.canvasViewRef = canvasView
 
         let deselectTap = UITapGestureRecognizer(
             target: context.coordinator,
@@ -54,10 +58,19 @@ struct PencilCanvasView: UIViewRepresentable {
 
     func updateUIView(_ uiView: PencilCanvasScrollView, context: Context) {
         context.coordinator.backgroundView?.style = pageStyle
+        if let image = pendingImageInsertion {
+            context.coordinator.insertImage(image)
+            DispatchQueue.main.async { pendingImageInsertion = nil }
+        }
     }
 
     func makeCoordinator() -> Coordinator {
-        Coordinator(fontSettings: fontSettings, recognitionSettings: recognitionSettings, textStore: textStore)
+        Coordinator(
+            fontSettings: fontSettings,
+            recognitionSettings: recognitionSettings,
+            textStore: textStore,
+            imageStore: imageStore
+        )
     }
 
     final class Coordinator: NSObject, UIScrollViewDelegate, PKCanvasViewDelegate, UITextViewDelegate {
@@ -86,6 +99,7 @@ struct PencilCanvasView: UIViewRepresentable {
         let toolPicker = DrawingToolPickerFactory.makeToolPicker()
         var backgroundView: PageStyleBackgroundView?
         weak var pageContainer: UIView?
+        weak var canvasViewRef: PKCanvasView?
         var snappedStrokeIDs: Set<UUID> = []
         /// Every stroke that has already gone through a snap attempt,
         /// regardless of outcome — guards against re-running
@@ -145,14 +159,22 @@ struct PencilCanvasView: UIViewRepresentable {
         /// or the selection is cleared some other way.
         var activeWordSelection: (id: UUID, range: NSRange)?
 
+        let imageStore: ImageObjectStore
+        var imageViewsByID: [UUID: UIImageView] = [:]
+        var imageSelectionOverlay: ShapeSelectionOverlayView?
+        var selectedImageID: UUID?
+        var dragStartImageFrame: CGRect?
+
         init(
             fontSettings: FontSettingsStore,
             recognitionSettings: RecognitionSettingsStore,
-            textStore: RecognizedTextStore
+            textStore: RecognizedTextStore,
+            imageStore: ImageObjectStore
         ) {
             self.fontSettings = fontSettings
             self.recognitionSettings = recognitionSettings
             self.textStore = textStore
+            self.imageStore = imageStore
         }
 
         func viewForZooming(in scrollView: UIScrollView) -> UIView? {
@@ -297,6 +319,9 @@ struct PencilCanvasView: UIViewRepresentable {
             if let overlay = selectionOverlay, overlay.frame.insetBy(dx: -8, dy: -8).contains(location) {
                 return
             }
+            if let overlay = imageSelectionOverlay, overlay.frame.insetBy(dx: -8, dy: -8).contains(location) {
+                return
+            }
             // The toolbar and replace box live directly on the screen's
             // root view, above pageContainer in z-order — a tap on either
             // is hit-tested to them first and never reaches this gesture
@@ -310,6 +335,16 @@ struct PencilCanvasView: UIViewRepresentable {
             deselect()
             deselectTextObject()
             clearActiveWordSelection()
+            // Images render below canvasView so ink naturally draws on top
+            // of them (see PencilCanvasView+Images.swift) — that means an
+            // image never receives touches directly, so tap-to-select has
+            // to be resolved here, against the stored objects' frames,
+            // rather than via a gesture recognizer on the image view itself.
+            if let hit = imageStore.imageObjects.last(where: { $0.frame.contains(location) }) {
+                selectImage(id: hit.id)
+            } else {
+                deselectImage()
+            }
         }
 
         private func deselect() {

@@ -597,3 +597,72 @@ regular weight — only Light and Bold ship on-device), and new
 notebooks default to `PageStyle.dotted`, both changed from this
 project's original Chalkboard SE / blank defaults per direct product
 preference rather than a bug fix.
+
+## Phase 14: image insertion, and drawing ink actually on top of an image
+
+`ImageObject` (`Core/Models/`) + `ImageObjectStore` (`Core/Services/`)
+follow the exact `RecognizedTextObject`/`RecognizedTextStore` precedent
+from Phase 13 rather than inventing a shared "canvas item" abstraction —
+strokes, shapes, text, and now images remain four separate, parallel
+mechanisms in this codebase, not variants of one sum type; unifying them
+would be a bigger architectural change than any single phase has called
+for. `ImageGeometry` (`Features/Images/`) is a plain, UIKit-free
+`CGRect`-based struct mirroring `ShapeFit+Geometry`'s pure translate/
+resize math, kept separately unit-testable the same way.
+
+**The key design fork, and why images sit *below* `canvasView` while
+converted text sits *above* it:** `RecognizedTextView` (Phase 13) solves
+"let the Pencil draw near/under converted text" by sitting above
+`canvasView` and passing Pencil touches through in `hitTest` — but that
+means ink drawn "through" a text view's frame is actually landing on
+`canvasView`, which is *behind* the text, i.e. ink renders underneath
+the glyphs, not over them. That's fine for text (nobody expects to draw
+literally on top of letters), but Phase 14 explicitly requires ink to be
+visually paintable *on top of* an inserted image. Doing that with the
+text-view trick would need the opposite of a passthrough — compositing
+canvasView's ink above a view that's already above canvasView, which
+isn't how UIKit layering works.
+
+The fix: `ImageObjectView`'s image sits **below** `canvasView` in
+`pageContainer` (`pageContainer.insertSubview(imageView,
+belowSubview: canvasView)`), not above it like text. `canvasView` is
+already transparent and already the frontmost content layer, so ink
+composites on top of the image for free — no hit-test passthrough
+needed for drawing at all. The tradeoff this creates: the image view can
+never receive touches directly, since `canvasView` sits above it and is
+hit-tested first for anything in that region. Tap-to-select is resolved
+by frame-checking against `imageStore.imageObjects` inside the existing
+shared `handleDeselectTap` gesture on `pageContainer` (which already
+receives every tap regardless of what's hit-tested beneath it, the same
+way it already excludes the shape/text selection chrome), rather than by
+a gesture recognizer on the image view itself. Move and resize, once
+selected, reuse `ShapeSelectionOverlayView` completely as-is (a second,
+independently-owned instance) — it was already pure geometry/gesture
+chrome with no shape-specific logic, driven entirely through its
+`onMove`/`onResize`/`onGestureEnded` closures against a `boundingBox`,
+which is exactly what an image's frame is too. That overlay is added as
+a `pageContainer` subview only while an image is selected, so it's
+naturally topmost and receives finger drags normally.
+
+Resize is aspect-ratio-locked (`ImageGeometry.resized`) — a free-form
+drag-to-resize, the model `ShapeFit+Geometry` uses for rectangles/
+ellipses, would silently distort photos, which a plain corner handle
+doesn't visually warn against.
+
+**Deliberately not attempted:** making ink strokes drawn over an image
+move together with it when the image itself is dragged. There's no
+precedent for "moving one visual thing drags unrelated ink with it"
+anywhere in this codebase (dragging a selected shape or text object
+never carries along nearby ink either), and building stroke-to-image
+attachment tracking would be new, unscoped machinery. "Ink stays
+visually and positionally associated with the image" is satisfied by
+both living in the same `pageContainer` coordinate space (so panning/
+zooming the page moves them together, automatically) and by ink
+compositing visually on top per the above — not by ink following the
+image around when the image alone is repositioned.
+
+Insertion uses `PhotosPicker` (PhotosUI, SwiftUI-native) for the photo
+library and `.fileImporter` for Files — both run out-of-process and
+need no `NSPhotoLibraryUsageDescription` entry, unlike the older
+`PHPickerViewController`/direct `PHAsset` access this could otherwise
+have required.
