@@ -13,22 +13,33 @@ the everyday tools people expect — and deliberately nothing beyond that.
 
 ## Status
 
-🚧 Early development. See the Progress Checklist in the project's internal
-build plan for current phase status.
+🚧 In active development — Phases 0–12 merged, Phase 13 (editable text) in
+review. Core canvas, drawing tools, shape recognition, and the automatic
+handwriting-to-text pipeline are working end-to-end on a physical iPad.
+Cloud sync, local persistence, and export/search are not built yet.
 
 ## Features
 
+**Implemented:**
+
 - Automatic handwriting-to-editable-text conversion, powered by
   `PKStrokeRecognizer` (PencilKit, iPadOS 27+) — no manual "convert" step
+- Converted text is real, selectable, editable text — not rasterized —
+  with word-level selection, per-word or per-object font/weight/size/color,
+  and pencil-driven replacement of a selected word
 - Pen, highlighter, and eraser tools with adjustable pen size and a color
   picker
 - Pencil-only drawing; finger touches scroll/pan the page, never draw
-- Insert images, resize/reposition them, and write or draw on top of them
 - Draw-and-hold shape recognition (rough circle/rectangle/line snaps to a
-  clean version)
+  clean version), with drag-to-move and drag-to-resize
+- Page styles: blank, lined, dotted, and grid — per page or per notebook
+
+**Planned (not yet built):**
+
+- Insert images, resize/reposition them, and write or draw on top of them
 - Lasso/selection tool to move handwritten strokes, converted text, and
   images together
-- Page styles: blank, lined, dotted, and grid — per page or per notebook
+- Undo/redo, local persistence, notebook/page management
 - Offline-first with Firebase sync (Firestore + Cloud Storage +
   Authentication)
 - PDF export (page or full notebook) — no PDF import/annotation

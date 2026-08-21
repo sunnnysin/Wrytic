@@ -508,10 +508,87 @@ font setting only. `HandwritingTextPositioningService` always returns
 `baseStyle` unchanged; only placement (the frame's origin) adapts.
 
 `AutoRecognitionWorkflow` calls this per group before building each
-`RecognizedTextObject`; `PencilCanvasView+Recognition`'s `sizeLabel` now
-just applies the already-computed `boundingBox` instead of re-deriving a
-height from `style.size` itself, so there's one source of truth for a
-converted line's frame.
+`RecognizedTextObject`; `PencilCanvasView+Recognition`'s `sizeTextView`
+now just applies the already-computed `boundingBox` instead of
+re-deriving a height from `style.size` itself, so there's one source of
+truth for a converted line's frame.
+
+### Phase 13: real editable text, word selection, and pencil-driven replace
+
+Converted text (`RecognizedTextLabel`, a `UILabel`) became
+`RecognizedTextView`, a `UITextView` — real, selectable, copyable text
+rather than a static label, per the phase's "never rasterize"
+requirement. `RecognizedTextObject` gained `styleRuns: [TextRun]`
+alongside its existing whole-object `style`, and `AttributedTextRenderer`
+layers per-run overrides on top of the base style when building the
+`NSAttributedString` actually shown — needed because font/size/weight/
+color changes are scoped to *whatever's currently selected*: the whole
+object on a plain tap, or just a word/range on double-tap/hold, per
+direct product decision (an earlier whole-object-only design was
+implemented first, then corrected once it was clear the intent was
+per-word styling all along).
+
+**The real cause of drag-to-move breaking, after several dead-end fix
+attempts:** `UITextView` is a `UIScrollView` subclass and always carries
+its own built-in `panGestureRecognizer` for content scrolling, present
+in `gestureRecognizers` (just disabled, since `isScrollEnabled = false`)
+alongside the custom pan gesture added for whole-object move.
+`panGesture(on:)` picked `.first` `UIPanGestureRecognizer` without
+excluding it — since the built-in one is installed before the custom one
+is ever added, every enable/disable call was silently toggling the
+*wrong* gesture, and the real move gesture never actually turned on.
+Extensive theorizing about gesture-recognizer arbitration and
+`isSelectable` timing (see below) was real and worth keeping, but this
+identity-filter bug was the actual, sole reason move never worked across
+every earlier attempt. Fixed by explicitly excluding
+`textView.panGestureRecognizer` by reference (`!==`), not just by type.
+
+**Word selection is deliberately not UITextView's built-in double-tap/
+hold-to-select**, even though that would normally be the obvious choice.
+`isSelectable = true` at rest was tried first, gated behind
+`require(toFail:)` against the native double-tap/long-press gestures so
+a plain single tap wouldn't misfire as the start of a double-tap. That
+introduced the standard system double-tap disambiguation delay on every
+single tap, which broke the natural "tap to select, then immediately
+drag" gesture — the drag could begin before the delayed tap gesture had
+even resolved, at which point the object was never selected in the
+first place. The fix: `isSelectable` stays `false` at rest and during
+whole-object (bordered) selection — full exclusivity for the custom tap/
+pan gestures, no native gesture ever present to race against.
+Word/range selection is instead driven by two custom gestures
+(`UITapGestureRecognizer(numberOfTapsRequired: 2)` and
+`UILongPressGestureRecognizer`) resolving the tapped word via
+`WordBoundaryFinder` (pure, `NSString.enumerateSubstrings(.byWords)`),
+then setting `isSelectable = true` and `selectedRange` explicitly —
+UITextView's own selection handles, drag-to-extend, and Copy/Look Up
+menu all still work natively from that point on, since `isSelectable`
+being true is what actually drives them; only *how the initial word gets
+picked* is custom. `isSelectable` is turned back off the moment the
+selection clears (`clearActiveWordSelection`), restoring the "no
+competing gesture at rest" invariant.
+
+**The floating style/delete toolbar (`TextObjectToolbar`) is fixed at
+the top-center of the screen**, not anchored to the selection — an
+anchored version sat directly over the word being edited and jumped
+position on every selection or scroll change, which read as cluttered.
+It's a `UIHostingController` added directly to the screen's root
+`UIViewController.view` (found via `UIView.parentViewController`,
+climbing the responder chain) rather than to `pageContainer`, so its
+position is independent of canvas pan/zoom and it renders above
+everything by virtue of being the last-added direct subview at that
+level — which also means a tap on it is hit-tested to it directly and
+never reaches `pageContainer`'s own tap-outside-to-deselect gesture, so
+that gesture no longer needs an explicit toolbar-frame exclusion check.
+
+**Replacing text is pencil-driven, not a typed popover.** An earlier
+`TextReplaceBox` (a small floating text field) was built, then dropped
+per direct product direction: select a word (double-tap/hold, as above),
+then write anywhere on the page with the Apple Pencil — the *next*
+handwriting recognized through the normal auto-convert pipeline replaces
+the selected range instead of becoming a new text object
+(`Coordinator.activeWordSelection`, consumed once in
+`applyRecognizedText`). This reuses the existing recognition pipeline
+entirely; the only change is where the recognized text goes.
 
 ### Defaults: Noteworthy Bold and dotted pages
 
