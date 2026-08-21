@@ -25,6 +25,7 @@
 		2B22332E7DFCC4CA8CA3EDCB /* PencilCanvasView+Images.swift in Sources */ = {isa = PBXBuildFile; fileRef = ADB3D975C204552AC8303634 /* PencilCanvasView+Images.swift */; };
 		3574C77041C2E20B5290BEC2 /* RecognizedTextStoreTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5C3B29DB74B4DD789C8967B8 /* RecognizedTextStoreTests.swift */; };
 		362BD4DE37AF27C2D7DEB193 /* TextColor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4FE50EA31223C66595FCF1FD /* TextColor.swift */; };
+		37CAE0E643E33A2A1CF10BF8 /* ShapeClassifierPolygonTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9B5DDBDFFBCAB883206F51B3 /* ShapeClassifierPolygonTests.swift */; };
 		38152430A0F5313C032DD850 /* PencilCanvasScrollView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6F92FEBCDF700B1445A8050F /* PencilCanvasScrollView.swift */; };
 		3A423A792FE2BE07362FF0BE /* ShapeSnapService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 30878356EFD1289439E7F41F /* ShapeSnapService.swift */; };
 		3ABD01FB99CC2F33D3514C41 /* HomeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D998E57BE28904F90B2F48C6 /* HomeView.swift */; };
@@ -34,6 +35,7 @@
 		476B462D877B4FF968016895 /* TextObjectToolbar.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8FBD89AB1BB0D25C85594D88 /* TextObjectToolbar.swift */; };
 		4843A42EDB5906203CAFAD8B /* StrokeGroup.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD310CB5C149E3334C36592D /* StrokeGroup.swift */; };
 		487D8D6C0199293B25EED0BC /* StrokeCaptureService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 71DC0648B35127E4DE6E7D72 /* StrokeCaptureService.swift */; };
+		4C2CB80005EA1D048000676C /* ShapeClassifier+Arrow.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4C4160178D42352B7D3849A6 /* ShapeClassifier+Arrow.swift */; };
 		4C48310ADB7B4E0FE0F3C488 /* FontAvailabilityService.swift in Sources */ = {isa = PBXBuildFile; fileRef = BFC4DD8DA42F8E6B3B1C8DF1 /* FontAvailabilityService.swift */; };
 		4EE374EFDA4700B367F75AFA /* TextEditCommit.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2C2E25AC79AE9EBA5EB11605 /* TextEditCommit.swift */; };
 		4F8DC8E310737A9F2638D44D /* ShapeFit+Geometry.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7DA24B3E487F77DD51E7B225 /* ShapeFit+Geometry.swift */; };
@@ -58,6 +60,7 @@
 		81BD3A1581F4B57FF82223FF /* AppShellView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 119359CB1017ACBAACA2657E /* AppShellView.swift */; };
 		82548061188EDA13499FD1C5 /* RecognitionSettingsStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0F8224349B8704A3A268362C /* RecognitionSettingsStore.swift */; };
 		862DB3A48E2703A499F738B0 /* NotebookStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5A93ACBA1E66D4C47D2730C6 /* NotebookStore.swift */; };
+		897F85AB13CA91B3CD8972CC /* ShapeClassifierOpenPathTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = ADF5BFF75A6A226EF2859129 /* ShapeClassifierOpenPathTests.swift */; };
 		8F07FC49775DA4656D1AE00A /* ImageGeometry.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8F6D049EEC91CC552D0D9B4E /* ImageGeometry.swift */; };
 		97C260598B271DABFFF9002D /* StrokeTool.swift in Sources */ = {isa = PBXBuildFile; fileRef = C5DA2AC6477F5F32C138E1B1 /* StrokeTool.swift */; };
 		9A1838E659C7B4EECC582AF4 /* PencilCanvasView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D6662F683652787C9A26CB5D /* PencilCanvasView.swift */; };
@@ -91,6 +94,7 @@
 		FCA8E32E9B9F9FDF4E8D1B86 /* ShapeType.swift in Sources */ = {isa = PBXBuildFile; fileRef = F2B2086F0CE10F2B818FC6F7 /* ShapeType.swift */; };
 		FDF38148036F7AA0325FEBDF /* ShapeFit.swift in Sources */ = {isa = PBXBuildFile; fileRef = F0DC645A8AB0DD689317CD2C /* ShapeFit.swift */; };
 		FE576D1FDEAEF7087A0680F9 /* FontSettingsStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 77A94C0FEAC8C215976A0915 /* FontSettingsStore.swift */; };
+		FEFFB14C25EFD5160A6B3806 /* ShapeClassifier+Polygon.swift in Sources */ = {isa = PBXBuildFile; fileRef = B3ADD6F7060BCE6CCE78E0F4 /* ShapeClassifier+Polygon.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -136,6 +140,7 @@
 		3BD38EBD2747CC0BCF31C620 /* StrokeCaptureServiceTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StrokeCaptureServiceTests.swift; sourceTree = "<group>"; };
 		41C75E1829B504AA5220EE0B /* HandwritingWorkflowService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HandwritingWorkflowService.swift; sourceTree = "<group>"; };
 		44E74BE4AEE283904C24D62F /* DrawingToolPickerFactoryTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DrawingToolPickerFactoryTests.swift; sourceTree = "<group>"; };
+		4C4160178D42352B7D3849A6 /* ShapeClassifier+Arrow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "ShapeClassifier+Arrow.swift"; sourceTree = "<group>"; };
 		4C80B3036233F46F514C3039 /* Notebook.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Notebook.swift; sourceTree = "<group>"; };
 		4FE50EA31223C66595FCF1FD /* TextColor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TextColor.swift; sourceTree = "<group>"; };
 		51A927332B3FC64C77EBB550 /* ImageObjectStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ImageObjectStore.swift; sourceTree = "<group>"; };
@@ -167,10 +172,13 @@
 		8F6D049EEC91CC552D0D9B4E /* ImageGeometry.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ImageGeometry.swift; sourceTree = "<group>"; };
 		8FBD89AB1BB0D25C85594D88 /* TextObjectToolbar.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TextObjectToolbar.swift; sourceTree = "<group>"; };
 		9AE990B33C609F974AA688AA /* PageStylePatternGeneratorTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PageStylePatternGeneratorTests.swift; sourceTree = "<group>"; };
+		9B5DDBDFFBCAB883206F51B3 /* ShapeClassifierPolygonTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShapeClassifierPolygonTests.swift; sourceTree = "<group>"; };
 		A334B50362AD9AC4E12FCE70 /* StrokeToolTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StrokeToolTests.swift; sourceTree = "<group>"; };
 		A3793534D088BBDF30DFEB0C /* TextRunMergerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TextRunMergerTests.swift; sourceTree = "<group>"; };
 		ADB3D975C204552AC8303634 /* PencilCanvasView+Images.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "PencilCanvasView+Images.swift"; sourceTree = "<group>"; };
+		ADF5BFF75A6A226EF2859129 /* ShapeClassifierOpenPathTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShapeClassifierOpenPathTests.swift; sourceTree = "<group>"; };
 		AE474A0B7202F02F1EF67B7A /* TextEditCommitTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TextEditCommitTests.swift; sourceTree = "<group>"; };
+		B3ADD6F7060BCE6CCE78E0F4 /* ShapeClassifier+Polygon.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "ShapeClassifier+Polygon.swift"; sourceTree = "<group>"; };
 		B5FA904F30A85889FD0E51C9 /* WryticUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WryticUITests.swift; sourceTree = "<group>"; };
 		B81544D92509C06D0CD9EF59 /* ImageObjectStoreTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ImageObjectStoreTests.swift; sourceTree = "<group>"; };
 		BE1E45D53E9556D30B99368E /* NotebookListView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotebookListView.swift; sourceTree = "<group>"; };
@@ -239,6 +247,8 @@
 			isa = PBXGroup;
 			children = (
 				2FC5AFE8E0B7040DED6A08B2 /* ShapeClassifier.swift */,
+				4C4160178D42352B7D3849A6 /* ShapeClassifier+Arrow.swift */,
+				B3ADD6F7060BCE6CCE78E0F4 /* ShapeClassifier+Polygon.swift */,
 				F0DC645A8AB0DD689317CD2C /* ShapeFit.swift */,
 				7DA24B3E487F77DD51E7B225 /* ShapeFit+Geometry.swift */,
 				00BD6A4A768C606B5090959E /* ShapeFit+Selection.swift */,
@@ -277,6 +287,8 @@
 				E1315B74E5E9CB39BEB6F258 /* PenStrokeFilterTests.swift */,
 				13004E3BAFC601EF1A0DD6C1 /* PKStrokeRecognitionServiceTests.swift */,
 				5C3B29DB74B4DD789C8967B8 /* RecognizedTextStoreTests.swift */,
+				ADF5BFF75A6A226EF2859129 /* ShapeClassifierOpenPathTests.swift */,
+				9B5DDBDFFBCAB883206F51B3 /* ShapeClassifierPolygonTests.swift */,
 				3A7D4C8360D8F19D8C2D2172 /* ShapeClassifierTests.swift */,
 				DF0244EFD0156A2ACF02B7AD /* ShapeFitSelectionTests.swift */,
 				59D4AC552FDBC5D32BEDC9A6 /* ShapeGeometryTests.swift */,
@@ -583,6 +595,8 @@
 				7857F54CD82F87D8BA620E7D /* PencilCanvasConfigurationTests.swift in Sources */,
 				D18D4404B15B9A0806D4EFB9 /* PencilCanvasViewImageTests.swift in Sources */,
 				3574C77041C2E20B5290BEC2 /* RecognizedTextStoreTests.swift in Sources */,
+				897F85AB13CA91B3CD8972CC /* ShapeClassifierOpenPathTests.swift in Sources */,
+				37CAE0E643E33A2A1CF10BF8 /* ShapeClassifierPolygonTests.swift in Sources */,
 				E6208DCF8DCCE62313256863 /* ShapeClassifierTests.swift in Sources */,
 				CD3E7F669755DAEEEEE55736 /* ShapeFitSelectionTests.swift in Sources */,
 				215CD7BD9CA97978771BDD40 /* ShapeGeometryTests.swift in Sources */,
@@ -637,6 +651,8 @@
 				1F820C4CDB169A435541AA05 /* RecognizedTextObject.swift in Sources */,
 				7C1CEA6BDACD5E7FACADC77A /* RecognizedTextStore.swift in Sources */,
 				3DDEAB1A7CF979654F52CCB6 /* SettingsView.swift in Sources */,
+				4C2CB80005EA1D048000676C /* ShapeClassifier+Arrow.swift in Sources */,
+				FEFFB14C25EFD5160A6B3806 /* ShapeClassifier+Polygon.swift in Sources */,
 				17F68A269A85CFB99DC71EA7 /* ShapeClassifier.swift in Sources */,
 				4F8DC8E310737A9F2638D44D /* ShapeFit+Geometry.swift in Sources */,
 				E6D47E0C863A3B35C79A39F8 /* ShapeFit+Selection.swift in Sources */,

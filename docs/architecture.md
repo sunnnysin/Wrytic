@@ -727,3 +727,72 @@ iteration of the loop). Fixed by wrapping that write in
 newly-snapped stroke's own ID into `snapEvaluatedStrokeIDs` (previously
 only the pre-snap original stroke's ID was ever recorded there) as a
 second, defensive guard against re-evaluating an already-snapped shape.
+
+## Shape set expansion: triangle, pentagon, hexagon, star, curved arrow, orthogonal polyline
+
+`ShapeType`/`ShapeFit` grew six new cases on top of the original four
+(line, rectangle, ellipse, arrow), extending the same draw-and-hold
+heuristic approach from `docs/architecture.md`'s original Phase 7 entry
+rather than switching to a different technique. `ShapeClassifier.swift`
+grew large enough to split: `ShapeClassifier+Polygon.swift` (closed
+shapes — triangle/pentagon/hexagon/star, regularity/star-pattern checks,
+corner reduction) and `ShapeClassifier+Arrow.swift` (open shapes —
+straight/curved arrow, orthogonal polyline, flare detection) alongside
+the original `ShapeClassifier.swift` (shared geometry primitives and the
+top-level `classify`/`fit` dispatch). `ShapeFit`'s new closed cases
+(`triangle`, `regularPolygon`, `star`) are plain-geometry structs the
+same way `rectangle`/`ellipse` already were — pentagon and hexagon share
+one `regularPolygon(center:radius:rotation:sides:)` case rather than two
+near-identical ones.
+
+**Two real, non-obvious bugs found while building this, in order:**
+
+1. **A circle can look like a regular polygon.** Douglas-Peucker
+   simplification of a smooth circle/ellipse is itself highly
+   symmetric — at the epsilon this codebase uses, a hand-drawn circle
+   commonly simplifies to a near-perfect octagon, which trivially passes
+   an equal-side/equal-angle "is this regular?" check the same way a
+   genuine hand-drawn hexagon would. Corner count and angle regularity
+   alone can't tell "eight straight polygon edges" apart from "an arc
+   Douglas-Peucker chopped into eight straight segments." The actual
+   discriminator, `ShapeClassifier+Polygon.hasStraightEdges`: check the
+   *raw*, unsimplified points between each pair of detected corners
+   against the straight chord connecting them. A real polygon edge's raw
+   points hug that chord (only hand-wobble noise); a circle's arc
+   systematically bulges away from it. This runs before the regularity/
+   star-pattern check for every pentagon/hexagon/star candidate, and is
+   what actually keeps circles falling through to the ellipse
+   compactness check instead of being claimed by a polygon shape first.
+   A related, narrower issue in the same area: Douglas-Peucker's
+   single-split-per-recursion-level approach can spuriously keep an
+   extra, nearly-colinear point when a symmetric shape has two dominant
+   corners on the same side of a recursive split (most visible on
+   hexagons, which need two corners resolved per recursive half, unlike
+   a rectangle's one) — `ShapeClassifier+Polygon.dominantCorners` prunes
+   back to the expected corner count by repeatedly dropping whichever
+   point is least corner-like (interior angle closest to straight),
+   gated by a deliberately small `candidateCornerOvershoot` tolerance so
+   this pruning can't paper over an actually-wrong corner count.
+
+2. **Curved arrows always reshaped into the same generic bow,
+   regardless of the actual gesture drawn — found from real on-device
+   testing, not caught by synthetic unit tests.** The quadratic Bézier
+   control point was computed by measuring the shaft's maximum deviation
+   from the tail-head chord, then always reconstructing a control point
+   as if that deviation occurred at the exact midpoint (t=0.5) of the
+   curve. A quick real-world curved-arrow gesture very often hooks
+   sharply near one end rather than bowing symmetrically through the
+   middle, so forcing the bend's magnitude onto a fixed midpoint
+   position discarded exactly where the real bend was, and every curve
+   collapsed toward the same shape irrespective of input. Fixed by
+   tracking the actual point of maximum deviation *and* its real
+   fractional position along the tail-head span, then solving the
+   quadratic Bézier control point equation for that real `(point,
+   fraction)` pair instead of assuming `fraction = 0.5`. Also switched
+   arrowhead-flare detection, for curved shafts specifically, from
+   projecting onto the straight tail-head chord (which a curved shaft's
+   own ink deviates from throughout, not just at the arrowhead) to
+   point-density near each candidate endpoint — an arrowhead's flanks
+   pack extra ink into a small area near one end regardless of how the
+   shaft bends to get there, so density is robust to curvature in a way
+   chord-projection isn't.

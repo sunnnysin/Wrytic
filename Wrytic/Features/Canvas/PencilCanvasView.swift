@@ -1,6 +1,9 @@
 import SwiftUI
 import PencilKit
 import UIKit
+import os
+
+private let shapeSnapLog = Logger(subsystem: "com.wrytic.app", category: "shape-snap")
 
 struct PencilCanvasView: UIViewRepresentable {
     @Binding var canvasView: PKCanvasView
@@ -248,10 +251,19 @@ struct PencilCanvasView: UIViewRepresentable {
         private func attemptSnap(strokeID: UUID, in canvasView: PKCanvasView) {
             guard let lastStroke = canvasView.drawing.strokes.last, lastStroke.id == strokeID else { return }
 
+            let rawLocations = Array(lastStroke.path).map(\.location)
+            let rawPointCount = rawLocations.count
+            let rawStart = rawLocations.first?.debugDescription ?? "nil"
+            let rawEnd = rawLocations.last?.debugDescription ?? "nil"
             guard let snap = ShapeSnapService.snap(stroke: lastStroke) else {
                 snapEvaluatedStrokeIDs.insert(lastStroke.id)
+                shapeSnapLog.debug("no shape matched, rawPointCount=\(rawPointCount, privacy: .public)")
                 return
             }
+            let fitDescription = String(describing: snap.fit)
+            shapeSnapLog.debug("snapped rawPointCount=\(rawPointCount, privacy: .public)")
+            shapeSnapLog.debug("rawStart=\(rawStart, privacy: .public) rawEnd=\(rawEnd, privacy: .public)")
+            shapeSnapLog.debug("fit=\(fitDescription, privacy: .public)")
 
             snappedStrokeIDs.insert(snap.stroke.id)
             // Also mark the *snapped* stroke itself as evaluated, not just

@@ -3,9 +3,9 @@ import CoreGraphics
 extension ShapeFit {
     var isClosed: Bool {
         switch self {
-        case .rectangle, .ellipse:
+        case .rectangle, .ellipse, .triangle, .regularPolygon, .star:
             return true
-        case .line, .arrow:
+        case .line, .arrow, .curvedArrow, .orthogonalPolyline:
             return false
         }
     }
