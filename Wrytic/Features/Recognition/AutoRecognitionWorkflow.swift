@@ -13,6 +13,7 @@ struct AutoRecognitionWorkflow: HandwritingWorkflowService {
     /// growing/shrinking drawing over many separate calls over time, so
     /// this stays conservative rather than risking accumulated state.
     var makeRecognitionService: @Sendable () -> HandwritingRecognitionService = { PKStrokeRecognitionService() }
+    var positioningService: TextPositioningService = HandwritingTextPositioningService()
 
     func process(
         drawing: PKDrawing,
@@ -44,10 +45,11 @@ struct AutoRecognitionWorkflow: HandwritingWorkflowService {
             let logged = text ?? "nil"
             workflowLog.debug("  group[\(index)] strokeIDs=\(strokeIDs.count) text=\(logged, privacy: .public)")
             guard let text else { continue }
+            let placement = positioningService.position(for: group, baseStyle: style)
             results.append(RecognizedTextObject(
                 text: text,
-                style: style,
-                boundingBox: group.boundingBox,
+                style: placement.style,
+                boundingBox: placement.boundingBox,
                 sourceStrokeIDs: strokeIDs
             ))
         }
