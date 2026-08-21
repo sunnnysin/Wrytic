@@ -162,7 +162,7 @@
 		759014E032C663C1A96AA8E1 /* FontAvailabilityServiceTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FontAvailabilityServiceTests.swift; sourceTree = "<group>"; };
 		75D67CADCB8B1EA1029CA279 /* UIView+ParentViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "UIView+ParentViewController.swift"; sourceTree = "<group>"; };
 		76226D0202A8C95FA9A4516F /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
-		7745C042BED4A0297391E5C1 /* Wrytic.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Wrytic.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		7745C042BED4A0297391E5C1 /* Wrytic.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = Wrytic.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		77A94C0FEAC8C215976A0915 /* FontSettingsStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FontSettingsStore.swift; sourceTree = "<group>"; };
 		7DA24B3E487F77DD51E7B225 /* ShapeFit+Geometry.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "ShapeFit+Geometry.swift"; sourceTree = "<group>"; };
 		7EDBC8F7FA8D31D627771AB3 /* TextRun.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TextRun.swift; sourceTree = "<group>"; };
@@ -758,7 +758,6 @@
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
 				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = U9Q25G4KPW;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = "Generated/Wrytic-Info.plist";
 				IPHONEOS_DEPLOYMENT_TARGET = 27.0;
@@ -766,7 +765,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 0.3.0;
+				MARKETING_VERSION = 0.4.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.wrytic.app;
 				SDKROOT = iphoneos;
 				SWIFT_VERSION = 6.0;
@@ -837,7 +836,6 @@
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
 				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = U9Q25G4KPW;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = "Generated/Wrytic-Info.plist";
 				IPHONEOS_DEPLOYMENT_TARGET = 27.0;
@@ -845,7 +843,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 0.3.0;
+				MARKETING_VERSION = 0.4.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.wrytic.app;
 				SDKROOT = iphoneos;
 				SWIFT_VERSION = 6.0;
