@@ -18,6 +18,15 @@ final class ShapeSelectionOverlayView: UIView {
     var onResize: ((_ newCornerInPageSpace: CGPoint) -> Void)?
     var onGestureEnded: (() -> Void)?
 
+    /// The resize handle's frame in the coordinate space this overlay
+    /// itself is positioned in (its superview) — a tap here must never
+    /// be mistaken for a tap "elsewhere" that should deselect, even
+    /// though the handle sits outside the shape's own visible geometry.
+    var resizeHandleFrameInSuperview: CGRect {
+        guard let superview else { return resizeHandle.frame }
+        return convert(resizeHandle.frame, to: superview)
+    }
+
     init() {
         super.init(frame: .zero)
         // No isUserInteractionEnabled = false here: UIView's default

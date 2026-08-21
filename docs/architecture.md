@@ -666,3 +666,64 @@ library and `.fileImporter` for Files — both run out-of-process and
 need no `NSPhotoLibraryUsageDescription` entry, unlike the older
 `PHPickerViewController`/direct `PHAsset` access this could otherwise
 have required.
+
+A `PhotosPicker` placed directly as `Menu` content doesn't reliably
+present on tap — `Menu` items are expected to be simple actions, and
+`PhotosPicker`'s own presentation logic doesn't fire through that. Fixed
+by driving it from a plain `Button` inside the menu that flips an
+`isPresentingPhotosPicker` boolean, with `.photosPicker(isPresented:)`
+attached to the screen itself (`CanvasScreen.swift`) rather than nested
+inside the menu.
+
+## Shape selection: tap-to-deselect, and the bounding-box vs. geometry vs. re-entrancy bug
+
+A shape (line/rectangle/ellipse/arrow), once auto-selected on snap,
+sometimes couldn't be deselected by tapping elsewhere on the page —
+tapping repeatedly did nothing. Two distinct, real bugs were involved,
+and fixing only the first (though a genuine improvement) did not
+resolve the reported symptom:
+
+**Bug 1 — bounding box too generous for open shapes.**
+`handleDeselectTap`'s tap-exclusion check compared the tap location
+against the selected shape's full bounding box. For a rectangle or
+ellipse that's fine — the box roughly matches the visible shape. For a
+diagonal line or arrow, though, `ShapeFit.boundingBox` spans the two
+endpoints, which for a long diagonal can cover most of the page even
+though the visible ink is a thin stroke — so nearly any "tap elsewhere"
+still registered as "tapping the shape." Fixed with `ShapeFit.isNear`
+(`ShapeFit+Selection.swift`) and `ShapeGeometry`
+(`ShapeGeometry.swift`): closed shapes (rectangle/ellipse) use
+point-in-polygon against the shape's own outline, open shapes
+(line/arrow) use distance-to-polyline with a small tolerance — both
+generic, driven entirely by `ShapePathBuilder.controlPointLocations`, so
+every current and future `ShapeFit` case gets correct hit-testing with
+no shape-specific math of its own. The resize handle itself is excluded
+via its own small frame (`ShapeSelectionOverlayView
+.resizeHandleFrameInSuperview`), separately from the shape-geometry
+check, since the handle sits outside the shape's visible outline by
+design.
+
+**Bug 2 — the actual dominant cause: a missing re-entrancy guard.**
+Fixing bug 1 did not resolve the user's repeated real-device retesting
+of the exact same symptom, which is what made this a genuine "the fix
+should work but doesn't" case — the same situation the Phase 11 writeup
+above describes, and resolved the same way: on-device `os.Logger`
+diagnostics, not another guess. The logs showed `select()` being called
+repeatedly on its own, with no tap in between. Cause: `attemptSnap`
+writes the freshly-classified stroke into `canvasView.drawing` without
+the `isApplyingSelectionUpdate` guard that every *other* similar write
+in `PencilCanvasView.swift` already uses (`applySelectionUpdate` sets it
+correctly). That unguarded write re-triggers PencilKit's own
+`canvasViewDrawingDidChange` delegate callback, which reschedules
+another snap attempt — this time on the now-mathematically-perfect
+shape, which trivially reclassifies as the same shape again, calls
+`select()` again, and writes the drawing again: an unguarded ~0.4s loop
+that silently re-selected the shape shortly after any deselect tap,
+forever, until something changed the selected stroke's identity out
+from under the pending retry (which is exactly what resizing or drawing
+new ink did — not a real fix, just an accidental way of breaking one
+iteration of the loop). Fixed by wrapping that write in
+`isApplyingSelectionUpdate = true/false` and additionally inserting the
+newly-snapped stroke's own ID into `snapEvaluatedStrokeIDs` (previously
+only the pre-snap original stroke's ID was ever recorded there) as a
+second, defensive guard against re-evaluating an already-snapped shape.
