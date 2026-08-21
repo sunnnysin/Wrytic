@@ -60,7 +60,7 @@ struct PencilCanvasView: UIViewRepresentable {
         Coordinator(fontSettings: fontSettings, recognitionSettings: recognitionSettings, textStore: textStore)
     }
 
-    final class Coordinator: NSObject, UIScrollViewDelegate, PKCanvasViewDelegate {
+    final class Coordinator: NSObject, UIScrollViewDelegate, PKCanvasViewDelegate, UITextViewDelegate {
         /// How long the drawing must go unchanged after a stroke ends
         /// before that stroke is evaluated for shape-snapping. This is a
         /// real wall-clock debounce, not an inspection of the stroke's
@@ -134,9 +134,11 @@ struct PencilCanvasView: UIViewRepresentable {
         /// canvasView.drawing, for the same re-entrancy reason as
         /// isApplyingSelectionUpdate above.
         var isApplyingRecognitionUpdate = false
-        var textLabelsByID: [UUID: UILabel] = [:]
+        var textViewsByID: [UUID: UITextView] = [:]
         var deleteButtonsByID: [UUID: UIButton] = [:]
+        var fontButtonsByID: [UUID: UIButton] = [:]
         var selectedTextObjectID: UUID?
+        var editingTextObjectID: UUID?
 
         init(
             fontSettings: FontSettingsStore,
@@ -290,8 +292,8 @@ struct PencilCanvasView: UIViewRepresentable {
             if let overlay = selectionOverlay, overlay.frame.insetBy(dx: -8, dy: -8).contains(location) {
                 return
             }
-            if let selectedTextObjectID, let label = textLabelsByID[selectedTextObjectID],
-               label.frame.insetBy(dx: -8, dy: -8).contains(location) {
+            if let selectedTextObjectID, let textView = textViewsByID[selectedTextObjectID],
+               textView.frame.insetBy(dx: -8, dy: -8).contains(location) {
                 return
             }
             deselect()

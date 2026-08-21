@@ -1,4 +1,5 @@
 import PencilKit
+import SwiftUI
 import UIKit
 
 extension PencilCanvasView.Coordinator {
@@ -58,26 +59,36 @@ extension PencilCanvasView.Coordinator {
 
     func addTextOverlay(for object: RecognizedTextObject) {
         guard let pageContainer else { return }
-        let label = RecognizedTextLabel()
-        label.text = object.text
-        label.font = availabilityService.resolvedUIFont(
+        let textView = RecognizedTextView()
+        textView.text = object.text
+        textView.font = availabilityService.resolvedUIFont(
             for: object.style.font,
             weight: object.style.weight,
             size: object.style.size
         )
-        label.numberOfLines = 0
-        sizeLabel(label, for: object)
-        label.isUserInteractionEnabled = true
-        let tap = UITapGestureRecognizer(target: self, action: #selector(handleTextTap(_:)))
-        label.addGestureRecognizer(tap)
+        textView.backgroundColor = .clear
+        textView.isScrollEnabled = false
+        textView.isEditable = false
+        textView.isSelectable = false
+        textView.textContainerInset = .zero
+        textView.textContainer.lineFragmentPadding = 0
+        textView.isUserInteractionEnabled = true
+        textView.delegate = self
+        sizeTextView(textView, for: object)
+
         // Only active once selected (see selectTextObject) — otherwise a
-        // finger drag anywhere on the label would fight the page's own
+        // finger drag anywhere on the text view would fight the page's own
         // finger-pan-to-scroll gesture before the user ever asked to move it.
         let pan = UIPanGestureRecognizer(target: self, action: #selector(handleTextPan(_:)))
         pan.isEnabled = false
-        label.addGestureRecognizer(pan)
-        pageContainer.addSubview(label)
-        textLabelsByID[object.id] = label
+        textView.addGestureRecognizer(pan)
+        // Disabled once editing begins, so UITextView's own tap-to-place-
+        // cursor handles subsequent taps instead of fighting this one.
+        let tap = UITapGestureRecognizer(target: self, action: #selector(handleTextTap(_:)))
+        textView.addGestureRecognizer(tap)
+
+        pageContainer.addSubview(textView)
+        textViewsByID[object.id] = textView
     }
 
     /// `object.boundingBox` (from `TextPositioningService`) supplies the
@@ -86,21 +97,42 @@ extension PencilCanvasView.Coordinator {
     /// and would block Pencil input well past where the text actually
     /// sits. Its height is only an estimate, though, and was found too
     /// tight for real font metrics (Noteworthy Bold's `g`/`y` descenders
-    /// clipped at the bottom on-device) — `label.sizeToFit()` already
-    /// computes the actual height that font needs, so the taller of the
-    /// two wins, keeping the same vertical center either way.
-    private func sizeLabel(_ label: UILabel, for object: RecognizedTextObject) {
-        label.sizeToFit()
-        let height = max(object.boundingBox.height, label.frame.height)
-        label.frame = CGRect(
+    /// clipped at the bottom on-device) — `sizeThatFits` already computes
+    /// the actual height that font needs, so the taller of the two wins,
+    /// keeping the same vertical center either way.
+    private func sizeTextView(_ textView: UITextView, for object: RecognizedTextObject) {
+        let unconstrained = CGSize(width: CGFloat.greatestFiniteMagnitude, height: CGFloat.greatestFiniteMagnitude)
+        let natural = textView.sizeThatFits(unconstrained)
+        let height = max(object.boundingBox.height, natural.height)
+        textView.frame = CGRect(
             x: object.boundingBox.origin.x,
             y: object.boundingBox.midY - height / 2,
-            width: label.frame.width,
+            width: natural.width,
             height: height
         )
     }
 
-    /// Finger taps on a label are unaffected by canvasView's `.pencilOnly`
+    /// Used after an edit or a font/size change, where the text view
+    /// already has a real on-page position — re-derives only the size
+    /// needed for the (possibly now different) text, keeping the existing
+    /// horizontal origin and vertical center rather than re-anchoring to
+    /// the original handwriting geometry.
+    private func resizeToFitCurrentText(_ textView: UITextView) {
+        let unconstrained = CGSize(width: CGFloat.greatestFiniteMagnitude, height: CGFloat.greatestFiniteMagnitude)
+        let natural = textView.sizeThatFits(unconstrained)
+        let height = max(natural.height, textView.frame.height)
+        let minX = textView.frame.minX
+        let midY = textView.frame.midY
+        textView.frame = CGRect(x: minX, y: midY - height / 2, width: natural.width, height: height)
+    }
+
+    private func syncBoundingBox(for id: UUID, frame: CGRect) {
+        guard var object = textStore.textObjects.first(where: { $0.id == id }) else { return }
+        object.boundingBox = frame
+        textStore.update(object)
+    }
+
+    /// Finger taps on a text view are unaffected by canvasView's `.pencilOnly`
     /// drawing policy — that policy only governs which touches canvasView
     /// itself treats as ink, not what a sibling view's own gesture
     /// recognizer receives. Erasing converted text with the Pencil eraser
@@ -109,10 +141,10 @@ extension PencilCanvasView.Coordinator {
     /// recognizer fighting it for the same touches is exactly the kind of
     /// conflict PencilKit apps are documented to avoid.
     @objc func handleTextTap(_ gesture: UITapGestureRecognizer) {
-        guard let label = gesture.view as? UILabel,
-              let id = textLabelsByID.first(where: { $0.value === label })?.key else { return }
+        guard let textView = gesture.view as? UITextView,
+              let id = textViewsByID.first(where: { $0.value === textView })?.key else { return }
         if selectedTextObjectID == id {
-            deleteTextObject(id: id)
+            beginEditingTextObject(id: id)
         } else {
             selectTextObject(id: id)
         }
@@ -120,33 +152,80 @@ extension PencilCanvasView.Coordinator {
 
     func selectTextObject(id: UUID) {
         deselectTextObject()
-        guard let label = textLabelsByID[id], let pageContainer else { return }
+        guard let textView = textViewsByID[id], let pageContainer else { return }
         selectedTextObjectID = id
-        label.layer.borderColor = UIColor.systemBlue.cgColor
-        label.layer.borderWidth = 1.5
-        label.layer.cornerRadius = 4
-        panGesture(on: label)?.isEnabled = true
+        textView.layer.borderColor = UIColor.systemBlue.cgColor
+        textView.layer.borderWidth = 1.5
+        textView.layer.cornerRadius = 4
+        panGesture(on: textView)?.isEnabled = true
 
-        let button = UIButton(type: .system)
-        button.setImage(UIImage(systemName: "xmark.circle.fill"), for: .normal)
-        button.tintColor = .systemRed
-        button.backgroundColor = .systemBackground
-        button.layer.cornerRadius = 11
-        button.addTarget(self, action: #selector(handleDeleteButtonTap(_:)), for: .touchUpInside)
-        pageContainer.addSubview(button)
-        deleteButtonsByID[id] = button
-        repositionDeleteButton(for: id)
+        let deleteButton = UIButton(type: .system)
+        deleteButton.setImage(UIImage(systemName: "xmark.circle.fill"), for: .normal)
+        deleteButton.tintColor = .systemRed
+        deleteButton.backgroundColor = .systemBackground
+        deleteButton.layer.cornerRadius = 11
+        deleteButton.addTarget(self, action: #selector(handleDeleteButtonTap(_:)), for: .touchUpInside)
+        pageContainer.addSubview(deleteButton)
+        deleteButtonsByID[id] = deleteButton
+
+        let fontButton = UIButton(type: .system)
+        fontButton.setImage(UIImage(systemName: "textformat"), for: .normal)
+        fontButton.tintColor = .label
+        fontButton.backgroundColor = .systemBackground
+        fontButton.layer.cornerRadius = 11
+        fontButton.addTarget(self, action: #selector(handleFontButtonTap(_:)), for: .touchUpInside)
+        pageContainer.addSubview(fontButton)
+        fontButtonsByID[id] = fontButton
+
+        repositionOverlayButtons(for: id)
     }
 
     func deselectTextObject() {
         guard let id = selectedTextObjectID else { return }
-        if let label = textLabelsByID[id] {
-            label.layer.borderWidth = 0
-            panGesture(on: label)?.isEnabled = false
+        if let textView = textViewsByID[id] {
+            if textView.isFirstResponder {
+                textView.resignFirstResponder()
+            }
+            textView.layer.borderWidth = 0
+            panGesture(on: textView)?.isEnabled = false
         }
         deleteButtonsByID[id]?.removeFromSuperview()
         deleteButtonsByID.removeValue(forKey: id)
+        fontButtonsByID[id]?.removeFromSuperview()
+        fontButtonsByID.removeValue(forKey: id)
         selectedTextObjectID = nil
+    }
+
+    func beginEditingTextObject(id: UUID) {
+        guard let textView = textViewsByID[id] else { return }
+        editingTextObjectID = id
+        panGesture(on: textView)?.isEnabled = false
+        tapGesture(on: textView)?.isEnabled = false
+        textView.isEditable = true
+        textView.isSelectable = true
+        textView.becomeFirstResponder()
+    }
+
+    func textViewDidEndEditing(_ textView: UITextView) {
+        guard let id = textViewsByID.first(where: { $0.value === textView })?.key else { return }
+        editingTextObjectID = nil
+        textView.isEditable = false
+        textView.isSelectable = false
+        tapGesture(on: textView)?.isEnabled = true
+        if selectedTextObjectID == id {
+            panGesture(on: textView)?.isEnabled = true
+        }
+
+        guard let object = textStore.textObjects.first(where: { $0.id == id }) else { return }
+        guard let updated = TextEditCommit.apply(editedText: textView.text, to: object) else {
+            deleteTextObject(id: id)
+            return
+        }
+        textStore.update(updated)
+        textView.text = updated.text
+        resizeToFitCurrentText(textView)
+        syncBoundingBox(for: id, frame: textView.frame)
+        repositionOverlayButtons(for: id)
     }
 
     @objc func handleDeleteButtonTap(_ sender: UIButton) {
@@ -154,48 +233,93 @@ extension PencilCanvasView.Coordinator {
         deleteTextObject(id: id)
     }
 
+    @objc func handleFontButtonTap(_ sender: UIButton) {
+        guard let id = fontButtonsByID.first(where: { $0.value === sender })?.key else { return }
+        presentFontPicker(for: id, anchoredTo: sender)
+    }
+
+    private func presentFontPicker(for id: UUID, anchoredTo anchorView: UIView) {
+        guard let hostViewController = anchorView.parentViewController else { return }
+        let binding = Binding<TextStyle>(
+            get: { [weak self] in
+                self?.textStore.textObjects.first(where: { $0.id == id })?.style ?? .default
+            },
+            set: { [weak self] newStyle in
+                self?.applyStyleChange(newStyle, to: id)
+            }
+        )
+        let picker = UIHostingController(rootView: NavigationStack { FontPickerView(style: binding) })
+        picker.modalPresentationStyle = .popover
+        picker.preferredContentSize = CGSize(width: 320, height: 420)
+        picker.popoverPresentationController?.sourceView = anchorView
+        picker.popoverPresentationController?.sourceRect = anchorView.bounds
+        hostViewController.present(picker, animated: true)
+    }
+
+    private func applyStyleChange(_ style: TextStyle, to id: UUID) {
+        guard var object = textStore.textObjects.first(where: { $0.id == id }),
+              let textView = textViewsByID[id] else { return }
+        object.style = style
+        textStore.update(object)
+        textView.font = availabilityService.resolvedUIFont(for: style.font, weight: style.weight, size: style.size)
+        resizeToFitCurrentText(textView)
+        syncBoundingBox(for: id, frame: textView.frame)
+        repositionOverlayButtons(for: id)
+    }
+
     @objc func handleTextPan(_ gesture: UIPanGestureRecognizer) {
-        guard let label = gesture.view as? UILabel,
-              let id = textLabelsByID.first(where: { $0.value === label })?.key,
+        guard let textView = gesture.view as? UITextView,
+              let id = textViewsByID.first(where: { $0.value === textView })?.key,
               let pageContainer else { return }
 
         let translation = gesture.translation(in: pageContainer)
-        label.frame.origin.x += translation.x
-        label.frame.origin.y += translation.y
+        textView.frame.origin.x += translation.x
+        textView.frame.origin.y += translation.y
         gesture.setTranslation(.zero, in: pageContainer)
-        repositionDeleteButton(for: id)
+        repositionOverlayButtons(for: id)
 
         guard gesture.state == .ended || gesture.state == .cancelled,
               var object = textStore.textObjects.first(where: { $0.id == id }) else { return }
-        object.boundingBox.origin = label.frame.origin
+        object.boundingBox.origin = textView.frame.origin
         textStore.update(object)
     }
 
-    private func panGesture(on label: UILabel) -> UIPanGestureRecognizer? {
-        label.gestureRecognizers?.compactMap { $0 as? UIPanGestureRecognizer }.first
+    private func panGesture(on textView: UITextView) -> UIPanGestureRecognizer? {
+        textView.gestureRecognizers?.compactMap { $0 as? UIPanGestureRecognizer }.first
     }
 
-    private func repositionDeleteButton(for id: UUID) {
-        guard let label = textLabelsByID[id], let button = deleteButtonsByID[id] else { return }
-        button.frame = CGRect(x: label.frame.maxX - 11, y: label.frame.minY - 11, width: 22, height: 22)
+    private func tapGesture(on textView: UITextView) -> UITapGestureRecognizer? {
+        textView.gestureRecognizers?.compactMap { $0 as? UITapGestureRecognizer }.first
+    }
+
+    private func repositionOverlayButtons(for id: UUID) {
+        guard let textView = textViewsByID[id] else { return }
+        if let deleteButton = deleteButtonsByID[id] {
+            deleteButton.frame = CGRect(x: textView.frame.maxX - 11, y: textView.frame.minY - 11, width: 22, height: 22)
+        }
+        if let fontButton = fontButtonsByID[id] {
+            fontButton.frame = CGRect(x: textView.frame.maxX - 33, y: textView.frame.minY - 11, width: 22, height: 22)
+        }
     }
 
     func deleteTextObject(id: UUID) {
         deselectTextObject()
-        textLabelsByID[id]?.removeFromSuperview()
-        textLabelsByID.removeValue(forKey: id)
+        textViewsByID[id]?.removeFromSuperview()
+        textViewsByID.removeValue(forKey: id)
         textStore.remove(id: id)
     }
 }
 
-/// A plain `UILabel` sits above `PKCanvasView` in `pageContainer` and would
+/// A plain `UITextView` sits above `PKCanvasView` in `pageContainer` and would
 /// otherwise claim every touch inside its frame during hit-testing — including
 /// Pencil touches — before `canvasView` ever sees them, making it impossible
 /// to write over or directly below converted text. `.pencilOnly` only governs
 /// what `canvasView` itself treats as ink; it has no effect on a sibling
 /// view's hit-testing. Letting Pencil touches fall through here restores
-/// normal drawing while finger taps still reach the label for select/delete.
-final class RecognizedTextLabel: UILabel {
+/// normal drawing while finger taps still reach the text view for select/
+/// edit, and (once editing) native cursor placement, selection, and copy/
+/// paste all come from UITextView itself rather than being rebuilt by hand.
+final class RecognizedTextView: UITextView {
     override func hitTest(_ point: CGPoint, with event: UIEvent?) -> UIView? {
         if event?.allTouches?.contains(where: { $0.type == .pencil }) == true {
             return nil
@@ -203,13 +327,9 @@ final class RecognizedTextLabel: UILabel {
         return super.hitTest(point, with: event)
     }
 
-    override func textRect(forBounds bounds: CGRect, limitedToNumberOfLines: Int) -> CGRect {
-        var rect = super.textRect(forBounds: bounds, limitedToNumberOfLines: limitedToNumberOfLines)
-        rect.origin.y = bounds.origin.y + (bounds.height - rect.height) / 2
-        return rect
-    }
-
-    override func drawText(in rect: CGRect) {
-        super.drawText(in: textRect(forBounds: rect, limitedToNumberOfLines: numberOfLines))
+    override func layoutSubviews() {
+        super.layoutSubviews()
+        let fitted = sizeThatFits(CGSize(width: bounds.width, height: CGFloat.greatestFiniteMagnitude))
+        contentInset.top = max(0, (bounds.height - fitted.height) / 2)
     }
 }
