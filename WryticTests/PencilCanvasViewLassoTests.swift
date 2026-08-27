@@ -138,6 +138,8 @@ struct PencilCanvasViewLassoTests {
         let image = try #require(rig.coordinator.imageStore.imageObjects.first)
         rig.coordinator.deselectImage()
 
+        let originalStrokeBounds = try #require(rig.canvasView.drawing.strokes.first { $0.id == ink.id }).renderBounds
+
         rig.coordinator.setLassoMode(true)
         rig.coordinator.completeLasso(wholePageLoop)
         rig.coordinator.lassoOverlay?.onMove?(CGPoint(x: 30, y: -12))
@@ -145,8 +147,9 @@ struct PencilCanvasViewLassoTests {
 
         let movedImage = rig.coordinator.imageStore.imageObjects.first { $0.id == image.id }
         #expect(movedImage?.frame.origin == CGPoint(x: image.frame.minX + 30, y: image.frame.minY - 12))
-        let transform = rig.canvasView.drawing.strokes.first { $0.id == ink.id }?.transform
-        #expect(transform.map { abs($0.tx - 30) < 0.001 && abs($0.ty + 12) < 0.001 } == true)
+        let movedStrokeBounds = try #require(rig.canvasView.drawing.strokes.first { $0.id == ink.id }).renderBounds
+        #expect(abs(movedStrokeBounds.minX - (originalStrokeBounds.minX + 30)) < 1)
+        #expect(abs(movedStrokeBounds.minY - (originalStrokeBounds.minY - 12)) < 1)
     }
 
     @Test func duplicatingTheGroupAddsAnOffsetCopyOfEveryMember() throws {
