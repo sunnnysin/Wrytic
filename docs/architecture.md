@@ -796,3 +796,66 @@ near-identical ones.
    pack extra ink into a small area near one end regardless of how the
    shaft bends to get there, so density is robust to curvature in a way
    chord-projection isn't.
+
+## Phase 15: lasso selection across strokes, text, and images
+
+`PKLassoTool` only selects strokes inside `PKCanvasView`. Converted text
+(`RecognizedTextView`) and images (`UIImageView`) are sibling views in
+`pageContainer`, outside the drawing, so the built-in lasso can't touch
+them — and this phase needs one loop that grabs any mix of the three.
+So lasso is a custom **mode**, not a `PKToolPicker` tool.
+
+`LassoOverlayView` (`Features/Selection/`) is a single full-page view
+added on top of `pageContainer` whenever the mode is on. While it's
+there it owns every touch: a drag draws the loop, and once a group is
+selected the same view draws the group's dashed box and resize handle
+and routes drags to move/resize. One view, one pan gesture, one tap — no
+z-order fights between an in-progress-loop layer and a selection-chrome
+layer, and no finger-pan-to-scroll while the mode is active (lasso is
+modal, like Notes). `handleDeselectTap` early-returns while the mode is
+active so the Phase 7/14 single-selection paths stay dormant.
+
+Selection math is pure and testable: `LassoHitTesting` (`Features/
+Selection/`) reuses `ShapeGeometry.pointInPolygon` and flags an item
+when ≥60% of its sampled points fall inside the loop. Rects (text
+frames, image frames) sample as nine points; strokes sample along their
+**rendered curve**.
+
+**Sampling strokes — `interpolatedPoints(by: .distance(12))`, not the
+raw `path`.** Iterating a `PKStrokePath` yields its B-spline control
+points, which are not on the visible line and drift further off once a
+stroke has round-tripped through `canvasView.drawing` (every snapped
+shape has; so has any re-read ink). `interpolatedLocation(at:)` looks
+like the fix but its parametric domain isn't `0...(count-1)` in a way
+that's safe to assume — sampling it that way collapsed most samples onto
+the stroke's endpoint, so a loop drawn cleanly around a shape matched
+only if an endpoint happened to fall inside. `interpolatedPoints(by:
+.distance(_:))` is the SDK's purpose-built even-spacing sampler and
+needs no domain assumptions.
+
+**Group move rebuilds each stroke's path with translated points
+(`Coordinator.translated(_:by:)`), it does not set `PKStroke.transform`.**
+A transform-only change to an *existing* stroke is not reliably
+repainted by `PKCanvasView` — the selection detected, `moveGroup` ran
+every tick, the model updated, and nothing moved on screen. Phase 7's
+shape move already rebuilds the path for the same reason; this follows
+it. `GroupDragBaseline` snapshots all strokes at drag start and every
+tick rebuilds `canvasView.drawing` from that snapshot, so the cumulative
+translation always applies to the original geometry and the code never
+re-reads its own writes. Text and image members move by frame like they
+do everywhere else; a lone-image selection gets a resize handle that
+reuses `ImageGeometry.resized`. Duplicate offsets copies by the same
+`translated(_:by:)` (with a fresh `id`); delete filters the drawing and
+tears down the sibling views.
+
+**The Duplicate/Delete bar is a SwiftUI `.overlay` on `CanvasScreen`,
+driven by `LassoActionsModel` (`@Observable`).** The first cut hosted it
+in a `UIHostingController` spliced into the SwiftUI host's view, which
+logged "broken view hierarchy" and churned gesture recognizers. The
+coordinator just flips `lassoActions.isVisible` and sets the two action
+closures; SwiftUI renders the bar. (The Phase 13 text toolbar still uses
+the older hosting approach — not touched here.)
+
+Strokes, text, and images stay three parallel mechanisms, consistent
+with every phase before this — `SelectionGroup` holds three `Set<UUID>`s
+and a bounding box, not a unified item list.

@@ -58,4 +58,28 @@ final class WryticUITests: XCTestCase {
         XCTAssertTrue(app.buttons["Photo Library"].waitForExistence(timeout: 5))
         XCTAssertTrue(app.buttons["Files"].waitForExistence(timeout: 5))
     }
+
+    /// The lasso loop and the group move/resize handles live inside a
+    /// PencilKit-backed `UIViewRepresentable` and need real drag (and,
+    /// for selection, Apple Pencil) input that XCUITest can't synthesize
+    /// against that surface — mirrors the image insert/resize gap. What's
+    /// checkable here is that the mode toggle is on the canvas toolbar and
+    /// flips on and back off without disturbing the canvas.
+    func testLassoModeCanBeToggledOnAndOff() throws {
+        let app = XCUIApplication()
+        app.launch()
+
+        app.buttons["newNotebookButton"].tap()
+        app.staticTexts["Untitled Notebook 1"].tap()
+        XCTAssertTrue(app.navigationBars["Untitled Notebook 1"].waitForExistence(timeout: 5))
+
+        let lassoToggle = app.buttons["lassoToggle"]
+        XCTAssertTrue(lassoToggle.waitForExistence(timeout: 5))
+
+        lassoToggle.tap()
+        lassoToggle.tap()
+
+        XCTAssertTrue(app.navigationBars["Untitled Notebook 1"].waitForExistence(timeout: 5))
+        XCTAssertTrue(lassoToggle.isHittable)
+    }
 }

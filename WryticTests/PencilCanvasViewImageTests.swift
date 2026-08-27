@@ -10,7 +10,8 @@ struct PencilCanvasViewImageTests {
             fontSettings: FontSettingsStore(),
             recognitionSettings: RecognitionSettingsStore(),
             textStore: RecognizedTextStore(),
-            imageStore: ImageObjectStore()
+            imageStore: ImageObjectStore(),
+            lassoActions: LassoActionsModel()
         )
         let pageContainer = UIView(frame: CGRect(origin: .zero, size: PencilCanvasConfiguration.pageSize))
         let canvasView = PKCanvasView(frame: pageContainer.bounds)
