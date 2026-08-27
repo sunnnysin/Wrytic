@@ -59,6 +59,7 @@ extension PencilCanvasView.Coordinator {
     }
 
     @objc func handleDeselectTap(_ gesture: UITapGestureRecognizer) {
+        guard !isLassoModeActive else { return }
         guard let pageContainer else { return }
         let location = gesture.location(in: pageContainer)
 
@@ -99,7 +100,7 @@ extension PencilCanvasView.Coordinator {
         }
     }
 
-    private func deselect() {
+    func deselect() {
         selectionOverlay?.removeFromSuperview()
         selectionOverlay = nil
         selectedStrokeID = nil

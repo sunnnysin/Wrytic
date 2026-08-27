@@ -13,10 +13,11 @@ the everyday tools people expect — and deliberately nothing beyond that.
 
 ## Status
 
-🚧 In active development — Phases 0–12 merged, Phase 13 (editable text) in
-review. Core canvas, drawing tools, shape recognition, and the automatic
-handwriting-to-text pipeline are working end-to-end on a physical iPad.
-Cloud sync, local persistence, and export/search are not built yet.
+🚧 In active development — Phases 0–14 merged, Phase 15 (lasso selection)
+in review. Core canvas, drawing tools, shape recognition, the automatic
+handwriting-to-text pipeline, image insertion, and lasso selection are
+working end-to-end on a physical iPad. Undo/redo, local persistence,
+cloud sync, and export/search are not built yet.
 
 ## Features
 
@@ -32,13 +33,15 @@ Cloud sync, local persistence, and export/search are not built yet.
 - Pencil-only drawing; finger touches scroll/pan the page, never draw
 - Draw-and-hold shape recognition (rough circle/rectangle/line snaps to a
   clean version), with drag-to-move and drag-to-resize
+- Insert images from Photos or Files; resize/reposition them and draw on
+  top of them
+- Lasso selection: loop around any mix of strokes, converted text, and
+  images to move them together, resize a lone image, or duplicate/delete
+  the selection
 - Page styles: blank, lined, dotted, and grid — per page or per notebook
 
 **Planned (not yet built):**
 
-- Insert images, resize/reposition them, and write or draw on top of them
-- Lasso/selection tool to move handwritten strokes, converted text, and
-  images together
 - Undo/redo, local persistence, notebook/page management
 - Offline-first with Firebase sync (Firestore + Cloud Storage +
   Authentication)

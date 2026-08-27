@@ -13,6 +13,8 @@ struct PencilCanvasView: UIViewRepresentable {
     var textStore: RecognizedTextStore
     var imageStore: ImageObjectStore
     @Binding var pendingImageInsertion: UIImage?
+    var isLassoModeEnabled: Bool
+    var lassoActions: LassoActionsModel
 
     func makeUIView(context: Context) -> PencilCanvasScrollView {
         let scrollView = PencilCanvasScrollView()
@@ -61,6 +63,7 @@ struct PencilCanvasView: UIViewRepresentable {
 
     func updateUIView(_ uiView: PencilCanvasScrollView, context: Context) {
         context.coordinator.backgroundView?.style = pageStyle
+        context.coordinator.setLassoMode(isLassoModeEnabled)
         if let image = pendingImageInsertion {
             context.coordinator.insertImage(image)
             DispatchQueue.main.async { pendingImageInsertion = nil }
@@ -72,7 +75,8 @@ struct PencilCanvasView: UIViewRepresentable {
             fontSettings: fontSettings,
             recognitionSettings: recognitionSettings,
             textStore: textStore,
-            imageStore: imageStore
+            imageStore: imageStore,
+            lassoActions: lassoActions
         )
     }
 
@@ -116,7 +120,7 @@ struct PencilCanvasView: UIViewRepresentable {
         /// gets reported to the recognition pipeline as "not handwriting",
         /// and conflating the two silently dropped any handwritten stroke
         /// that simply paused at the end from ever reaching the recognizer.
-        private var snapEvaluatedStrokeIDs: Set<UUID> = []
+        var snapEvaluatedStrokeIDs: Set<UUID> = []
         private var pendingSnapWorkItem: DispatchWorkItem?
         private var holdDetectionWorkItem: DispatchWorkItem?
         private var isToolInUse = false
@@ -172,16 +176,27 @@ struct PencilCanvasView: UIViewRepresentable {
         var selectedImageID: UUID?
         var dragStartImageFrame: CGRect?
 
+        var isLassoModeActive = false
+        var lassoOverlay: LassoOverlayView?
+        var selectionGroup: SelectionGroup?
+        var groupDragBaseline: GroupDragBaseline?
+        let lassoActions: LassoActionsModel
+
         init(
             fontSettings: FontSettingsStore,
             recognitionSettings: RecognitionSettingsStore,
             textStore: RecognizedTextStore,
-            imageStore: ImageObjectStore
+            imageStore: ImageObjectStore,
+            lassoActions: LassoActionsModel
         ) {
             self.fontSettings = fontSettings
             self.recognitionSettings = recognitionSettings
             self.textStore = textStore
             self.imageStore = imageStore
+            self.lassoActions = lassoActions
+            super.init()
+            lassoActions.onDuplicate = { [weak self] in self?.duplicateGroup() }
+            lassoActions.onDelete = { [weak self] in self?.deleteGroup() }
         }
 
         func viewForZooming(in scrollView: UIScrollView) -> UIView? {

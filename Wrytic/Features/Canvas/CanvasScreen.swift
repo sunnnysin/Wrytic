@@ -15,6 +15,8 @@ struct CanvasScreen: View {
     @State private var photosPickerItem: PhotosPickerItem?
     @State private var isPresentingPhotosPicker = false
     @State private var isPresentingFileImporter = false
+    @State private var isLassoModeEnabled = false
+    @State private var lassoActions = LassoActionsModel()
 
     private var notebook: Notebook? {
         store.notebooks.first { $0.id == notebookID }
@@ -28,9 +30,20 @@ struct CanvasScreen: View {
             recognitionSettings: recognitionSettings,
             textStore: textStore,
             imageStore: imageStore,
-            pendingImageInsertion: $pendingImageInsertion
+            pendingImageInsertion: $pendingImageInsertion,
+            isLassoModeEnabled: isLassoModeEnabled,
+            lassoActions: lassoActions
         )
             .ignoresSafeArea()
+            .overlay(alignment: .top) {
+                if lassoActions.isVisible {
+                    SelectionActionToolbar(
+                        onDuplicate: { lassoActions.onDuplicate() },
+                        onDelete: { lassoActions.onDelete() }
+                    )
+                    .padding(.top, 8)
+                }
+            }
             .navigationTitle(notebook?.name ?? "")
             .navigationBarTitleDisplayMode(.inline)
             .accessibilityIdentifier("canvasScreen")
@@ -46,6 +59,24 @@ struct CanvasScreen: View {
                         Label("Page Style", systemImage: "square.grid.2x2")
                     }
                     .accessibilityIdentifier("pageStyleMenu")
+                }
+                ToolbarItem {
+                    Button {
+                        isLassoModeEnabled.toggle()
+                    } label: {
+                        Image(systemName: "lasso")
+                            .font(.system(size: 16, weight: isLassoModeEnabled ? .bold : .regular))
+                            .foregroundStyle(isLassoModeEnabled ? Color.white : Color.accentColor)
+                            .frame(width: 30, height: 30)
+                            .background(
+                                RoundedRectangle(cornerRadius: 8, style: .continuous)
+                                    .fill(isLassoModeEnabled ? Color.accentColor : Color.clear)
+                            )
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityLabel("Lasso Select")
+                    .accessibilityIdentifier("lassoToggle")
+                    .accessibilityValue(isLassoModeEnabled ? "on" : "off")
                 }
                 ToolbarItem {
                     Menu {
