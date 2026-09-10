@@ -1,0 +1,5 @@
+// Base build settings for the Wrytic app target.
+// Pulls in Config/Local.xcconfig if present — that file holds each
+// developer's own DEVELOPMENT_TEAM and stays out of version control.
+// CI builds unsigned (CODE_SIGNING_ALLOWED=NO) so the include is optional.
+#include? "Local.xcconfig"

@@ -153,6 +153,7 @@
 		3CC9E2B2E6BBE8D4FAFA3269 /* LassoHitTestingTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LassoHitTestingTests.swift; sourceTree = "<group>"; };
 		41C75E1829B504AA5220EE0B /* HandwritingWorkflowService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HandwritingWorkflowService.swift; sourceTree = "<group>"; };
 		44E74BE4AEE283904C24D62F /* DrawingToolPickerFactoryTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DrawingToolPickerFactoryTests.swift; sourceTree = "<group>"; };
+		471315F337FF4731D85D87B4 /* Wrytic.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Wrytic.xcconfig; sourceTree = "<group>"; };
 		4C4160178D42352B7D3849A6 /* ShapeClassifier+Arrow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "ShapeClassifier+Arrow.swift"; sourceTree = "<group>"; };
 		4C80B3036233F46F514C3039 /* Notebook.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Notebook.swift; sourceTree = "<group>"; };
 		4FE50EA31223C66595FCF1FD /* TextColor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TextColor.swift; sourceTree = "<group>"; };
@@ -426,6 +427,14 @@
 			path = Settings;
 			sourceTree = "<group>";
 		};
+		D57AC0A9B52D435CDC01730D /* Config */ = {
+			isa = PBXGroup;
+			children = (
+				471315F337FF4731D85D87B4 /* Wrytic.xcconfig */,
+			);
+			path = Config;
+			sourceTree = "<group>";
+		};
 		D6E8210B7B058535B8C8EE35 /* Extensions */ = {
 			isa = PBXGroup;
 			children = (
@@ -480,6 +489,7 @@
 		EB78E19E3ECDF2650B9B6C12 = {
 			isa = PBXGroup;
 			children = (
+				D57AC0A9B52D435CDC01730D /* Config */,
 				648878F5D0D0899609A7CAE9 /* Wrytic */,
 				4941B4ACAF986FED0B9A122F /* WryticTests */,
 				6DE3675ADEE69EFEFB2C4F65 /* WryticUITests */,
@@ -801,6 +811,7 @@
 		};
 		4455BABC3E515EF48358B5EA /* Debug */ = {
 			isa = XCBuildConfiguration;
+			baseConfigurationReference = 471315F337FF4731D85D87B4 /* Wrytic.xcconfig */;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
@@ -879,6 +890,7 @@
 		};
 		80D493989088D41C09CAE001 /* Release */ = {
 			isa = XCBuildConfiguration;
+			baseConfigurationReference = 471315F337FF4731D85D87B4 /* Wrytic.xcconfig */;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
