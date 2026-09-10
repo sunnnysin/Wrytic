@@ -37,6 +37,9 @@ GoogleService-Info.plist
 *.mobileprovision
 *.cer
 
+# Local signing config — each developer's own team ID, never committed
+Config/Local.xcconfig
+
 # RecognitionSpike is throwaway — keep its own Generated/ out too
 RecognitionSpike/Generated/
 

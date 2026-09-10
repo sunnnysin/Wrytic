@@ -16,9 +16,13 @@ targets:
     deploymentTarget: "27.0"
     sources:
       - path: Wrytic
+    configFiles:
+      Debug: Config/Wrytic.xcconfig
+      Release: Config/Wrytic.xcconfig
     info:
       path: Generated/Wrytic-Info.plist
       properties:
+        ITSAppUsesNonExemptEncryption: false
         UILaunchScreen: {}
         UISupportedInterfaceOrientations:
           - UIInterfaceOrientationPortrait
